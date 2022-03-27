@@ -13,8 +13,6 @@ dotenv.config({ path: path.normalize(envFilePath) });
 const theSalt = process.env.MY_ENV_VAR;
 console.log(theSalt);
 
-// Set view engine
-app.set("view engine", "ejs");
 const app = express();
 app.use(express.static("public"));
 // Configure Express to parse request body data into request.body
@@ -23,7 +21,8 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 // Override POST requests with query param ?_method=PUT to be PUT requests
 app.use(methodOverride("_method"));
-
+// Set view engine
+app.set("view engine", "ejs");
 const port = 3004;
 
 
