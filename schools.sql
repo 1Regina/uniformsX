@@ -8,3 +8,6 @@ INSERT INTO schools (school_name, school_code) VALUES ('Anderson Primary School'
 INSERT INTO schools (school_name, school_code) VALUES ('Ang Mo Kio Primary School', 'P_Ang');
 INSERT INTO schools (school_name, school_code) VALUES ('Anglo-Chinese School (Junior)', 'P_ACSJ');
 INSERT INTO schools (school_name, school_code) VALUES ('Anglo-Chinese School (Primary)', 'P_ACSP');
+
+INSERT INTO uniforms (school_code, type, size) VALUES ('P_ACSJ', 'boys_uniform_bottoms', 23);
+INSERT INTO inventory (donor_id, uniform_id, status) VALUES (1, 2, 'available');

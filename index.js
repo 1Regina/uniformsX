@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { response } from 'express';
 import methodOverride from 'method-override';
 
 import cookieParser from 'cookie-parser';
@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
+import { request } from 'http';
 import pool from './initPool.js';
 import { updateMembership } from './helper_functions.js';
 
@@ -69,55 +70,44 @@ app.get('/login', (request, response) => {
 app.post('/login', (request, response) => {
   // retrieve the user entry using their email
   const values = [request.body.email];
-  pool.query('SELECT * from users WHERE email=$1', values, (error, result) => {
-    // return if there is a query error
-    if (error) {
-      console.log('Error executing query', error.stack);
-      response.status(503).send(result.rows);
-      return;
-    }
+  pool.query('SELECT * from users WHERE email=$1', values)
+    .then((userResult) => {
+      // get user record from results
+      const user = userResult.rows[0];
+      return user;
+    }).then((user) => {
+      console.log(user.password);
+      // initialise SHA object
+      // eslint-disable-next-line new-cap
+      const shaObj = new jsSHA('SHA-512', 'TEXT', { encoding: 'UTF8' });
+      const input = request.body.password;
+      // add salt to password
+      const unhashedString = `${input}-${theSalt}`;
 
-    // we didnt find a user with that email
-    if (result.rows.length === 0) {
+      // input the password from the request to the SHA object
+      shaObj.update(unhashedString);
+      // get the hashed value as output from the SHA object
+      const hashedPassword = shaObj.getHash('HEX');
+      // If the user's hashed password in the database does not match
+      // the hashed input password, login fails
+      if (user.password !== hashedPassword) {
       // the error for incorrect email and incorrect password are the same for security reasons.
       // This is to prevent detection of whether a user has an account for a given service.
-      response.status(403).send('login failed!');
-      return;
-    }
-
-    // get user record from results
-    const user = result.rows[0];
-    // initialise SHA object
-    // eslint-disable-next-line new-cap
-    const shaObj = new jsSHA('SHA-512', 'TEXT', { encoding: 'UTF8' });
-    const input = request.body.password;
-    // add salt to password
-    const unhashedString = `${input}-${theSalt}`;
-
-    // input the password from the request to the SHA object
-    shaObj.update(unhashedString);
-    // get the hashed value as output from the SHA object
-    const hashedPassword = shaObj.getHash('HEX');
-
-    // If the user's hashed password in the database does not match 
-    // the hashed input password, login fails
-    if (user.password !== hashedPassword) {
-      // the error for incorrect email and incorrect password are the same for security reasons.
-      // This is to prevent detection of whether a user has an account for a given service.
-      response.status(403).send('login failed! Password is incorrect');
-      return;
-    }
-
-    // The user's password hash matches that in the DB and we authenticate the user.
-    const d = new Date();
-    d.setTime(d.getTime() + 1 * 24 * 60 * 60 * 1000);
-    const expires = d.toUTCString();
-    response.setHeader('Set-Cookie', [
-      `userEmail=${user.email}; expires=${expires}; path=/`,
-    ]);
-    response.cookie('loggedIn', true);
-    response.redirect('/signup');
-  });
+        return response.status(403).send('login failed! Password is incorrect');
+      }
+      // The user's password hash matches that in the DB and we authenticate the user.
+      const d = new Date();
+      d.setTime(d.getTime() + 1 * 24 * 60 * 60 * 1000);
+      const expires = d.toUTCString();
+      response.setHeader('Set-Cookie', [
+        `userEmail=${user.email}; expires=${expires}; path=/`,
+      ]);
+      response.setHeader('Set-Cookie', [
+        `userID=${user.id}; expires=${expires}; path=/`,
+      ]);
+      response.cookie('loggedIn', true);
+      return response.redirect('/signup');
+    });
 });
 
 // LOG OUT clear cookie
@@ -126,9 +116,76 @@ app.get('/logout', (request, response) => {
   response.clearCookie('loggedIn');
   response.redirect('/signup');
 });
+// school_id, school_name, schools.school_code,
+app.get('/primary_school', (request, response) => {
+  const allSchoolQuery = 'SELECT * FROM schools WHERE school_code LIKE \'P_%\'';
+  pool.query(allSchoolQuery)
+    .then((allSchools) => {
+      const data = allSchools.rows;
+      console.log(data);
+      response.render('allSchools', { data });
+    });
+});
 
-// app.get('/uniforms/:school/add', (request, response) => {
-//   const sqlQuery = 'SELECT ';
-// });
+app.get('/secondary_school', (request, response) => {
+  const allSchoolQuery = 'SELECT * FROM schools WHERE school_code LIKE \'S_%\'';
+  pool.query(allSchoolQuery)
+    .then((allSchools) => {
+      const data = allSchools.rows;
+      console.log(data);
+      response.render('allSchools', { data });
+    });
+});
+
+app.get('/:school/uniform', (request, response) => {
+  const theSchool = request.params.school;
+  console.log(theSchool);
+  const sqlQuery = `SELECT school_name, schools.school_code,
+                           uniforms.id AS uniforms_id, uniforms.school_code, type, size,
+                           uniform_id, donor_id, COUNT(status)
+                    FROM schools
+                    INNER JOIN uniforms
+                    ON schools.school_code = uniforms.school_code
+                    INNER JOIN inventory
+                    ON uniforms.id = inventory.uniform_id
+                    WHERE STATUS = 'available' AND school_name='${theSchool}'
+                    GROUP BY school_name, schools.school_code,
+                             uniforms_id, uniforms.school_code, type, size,
+                             uniform_id, donor_id
+                    ORDER BY type, size`;
+  pool.query(sqlQuery)
+    .then((summaryCount) => {
+      const data = summaryCount.rows;
+      if (data.length === 0) {
+        response.render('null', { theSchool });
+      } else {
+        console.log(data);
+        response.render('showInventory', { data });
+      }
+    })
+    .catch((err) => {
+      console.error(err.message); // wont break
+    });
+});
+
+app.get('/donate', (request, response) => {
+  const { userEmail, userID, loggedIn } = request.cookies;
+  if (loggedIn === 'true') {
+    const uniformQuery = `SELECT school_name, schools.school_code, 
+                             uniforms.id AS uniforms_id,uniforms.school_code, type, size 
+                      FROM schools
+                      INNER JOIN uniforms 
+                      ON schools.school_code = uniforms.school_code`;
+    pool.query(uniformQuery)
+      .then((uniformResult) => {
+        const data = uniformResult.rows;
+        response.render('donate', { data, userid: userID });
+      }).catch((err) => {
+        console.error(err.message);
+      });
+  } else {
+    response.send('You need to login in');
+  }
+});
 // set port to listen
 app.listen(port);
