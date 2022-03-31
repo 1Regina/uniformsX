@@ -1,4 +1,4 @@
-import express, { response } from 'express';
+import express from 'express';
 import methodOverride from 'method-override';
 
 import cookieParser from 'cookie-parser';
@@ -6,9 +6,10 @@ import bodyParser from 'body-parser';
 import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
-import { request } from 'http';
+
+
 import pool from './initPool.js';
-import { updateMembership } from './helper_functions.js';
+import { updateMembership, getSchoolsList } from './helper_functions.js';
 
 const envFilePath = 'uniforms.env';
 dotenv.config({ path: path.normalize(envFilePath) });
@@ -102,9 +103,7 @@ app.post('/login', (request, response) => {
       response.setHeader('Set-Cookie', [
         `userEmail=${user.email}; expires=${expires}; path=/`,
       ]);
-      response.setHeader('Set-Cookie', [
-        `userID=${user.id}; expires=${expires}; path=/`,
-      ]);
+      response.cookie('userID', `${user.id}`);
       response.cookie('loggedIn', true);
       return response.redirect('/signup');
     });
@@ -112,6 +111,7 @@ app.post('/login', (request, response) => {
 
 // LOG OUT clear cookie
 app.get('/logout', (request, response) => {
+  response.clearCookie('userID');
   response.clearCookie('userEmail');
   response.clearCookie('loggedIn');
   response.redirect('/signup');
@@ -140,18 +140,18 @@ app.get('/secondary_school', (request, response) => {
 app.get('/:school/uniform', (request, response) => {
   const theSchool = request.params.school;
   console.log(theSchool);
-  const sqlQuery = `SELECT school_name, schools.school_code,
-                           uniforms.id AS uniforms_id, uniforms.school_code, type, size,
-                           uniform_id, donor_id, COUNT(status)
+  const sqlQuery = `SELECT school_name, school_code,
+                           uniforms.id AS uniforms_id, type,
+                           donor_id, inventory.school_id, uniform_id, size, COUNT(status)
                     FROM schools
-                    INNER JOIN uniforms
-                    ON schools.school_code = uniforms.school_code
                     INNER JOIN inventory
+                    ON schools.school_id = inventory.school_id
+                    INNER JOIN uniforms
                     ON uniforms.id = inventory.uniform_id
                     WHERE STATUS = 'available' AND school_name='${theSchool}'
-                    GROUP BY school_name, schools.school_code,
-                             uniforms_id, uniforms.school_code, type, size,
-                             uniform_id, donor_id
+                    GROUP BY school_name, school_code,
+                           uniforms_id, type,
+                           donor_id, inventory.school_id, uniform_id, size
                     ORDER BY type, size`;
   pool.query(sqlQuery)
     .then((summaryCount) => {
@@ -170,21 +170,91 @@ app.get('/:school/uniform', (request, response) => {
 
 app.get('/donate', (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
+  const data = {};
+  // let schoolList
+  let schools;
   if (loggedIn === 'true') {
-    const uniformQuery = `SELECT school_name, schools.school_code, 
-                             uniforms.id AS uniforms_id,uniforms.school_code, type, size 
-                      FROM schools
-                      INNER JOIN uniforms 
-                      ON schools.school_code = uniforms.school_code`;
-    pool.query(uniformQuery)
-      .then((uniformResult) => {
-        const data = uniformResult.rows;
-        response.render('donate', { data, userid: userID });
-      }).catch((err) => {
+    const schoolQuery = 'SELECT * FROM schools';
+    pool.query(schoolQuery)
+      .then((schoolResult) => {
+        data.schools = schoolResult.rows;
+        // console.log(schools);
+        // schoolList = getSchoolsList(schools);
+        // console.log(schoolList);
+      })
+      .then(() => {
+        const uniformQuery = 'SELECT * FROM uniforms';
+        pool.query(uniformQuery)
+          .then((uniformResult) => {
+            // console.log(uniformResult.rows);
+            data.uniforms = uniformResult.rows;
+
+            response.render('donate', { data });
+          });
+      })
+      .catch((err) => {
         console.error(err.message);
       });
   } else {
     response.send('You need to login in');
+  }
+});
+
+app.post('/donate', async (request, response) => {
+  if (request.cookies.loggedIn === 'true') {
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const {
+      school, type, quantity,
+    } = request.body;
+    const sizing = request.body.size;
+    const size = (String(sizing).replace(/ /g, '_').toUpperCase());
+    try {
+      const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
+      const schoolid = await pool.query(infoQuery);
+      const schoolID = schoolid.rows[0].school_id;
+      const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
+      console.log('bbbb', findUniId);
+      const uniID = await pool.query(findUniId);
+      const uID = uniID.rows[0].id;
+      const sqls = [];
+      for (let i = 0; i < quantity; i += 1) {
+        const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${schoolID}, ${uID},'${size}')`;
+        console.log(insertQuery);
+        sqls.push(pool.query(insertQuery));
+        response.send('donating');
+      }
+      await Promise.all(sqls);
+    } catch (err) {
+      console.error(err.message); // wont break
+    }
+  } else {
+    response.send('Only members can donate');
+  }
+});
+
+app.get('/my_donations', async (request, response) => {
+  if (request.cookies.loggedIn === 'true') {
+    console.log('aaaaaaaaa');
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const donatQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        WHERE donor_id = ${userID}
+                        GROUP BY school_name, type, size , status`;
+
+    // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
+
+    const results = await pool.query(donatQuery);
+    const data = results.rows;
+    console.log(data);
+    response.render('showMyDonations', { data });
+  } else {
+    response.send('please login to see what you have donated');
   }
 });
 // set port to listen

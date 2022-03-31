@@ -35,4 +35,11 @@ const updateMembership = async (input, id) => {
   }
 };
 
-export { whenQueryDone, updateMembership };
+const getSchoolsList = (queryArray) => {
+  const schoolsArray = [];
+  queryArray.forEach((element) => {
+    schoolsArray.push(element.school_name);
+  });
+  return schoolsArray;
+};
+export { whenQueryDone, updateMembership, getSchoolsList };
