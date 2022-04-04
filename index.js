@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { response } from 'express';
 import methodOverride from 'method-override';
 
 import cookieParser from 'cookie-parser';
@@ -7,7 +7,7 @@ import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
 
-
+import { request } from 'http';
 import pool from './initPool.js';
 import { updateMembership, getSchoolsList } from './helper_functions.js';
 
@@ -157,7 +157,8 @@ app.get('/:school/uniform', (request, response) => {
     .then((summaryCount) => {
       const data = summaryCount.rows;
       if (data.length === 0) {
-        response.render('null', { theSchool });
+        data.message = `There are no available stock for ${theSchool}`;
+        response.render('null', { data });
       } else {
         console.log(data);
         response.render('showInventory', { data });
@@ -221,9 +222,9 @@ app.post('/donate', async (request, response) => {
         const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${schoolID}, ${uID},'${size}')`;
         console.log(insertQuery);
         sqls.push(pool.query(insertQuery));
-        response.send('donating');
       }
       await Promise.all(sqls);
+      response.send('donating');
     } catch (err) {
       console.error(err.message); // wont break
     }
@@ -254,8 +255,135 @@ app.get('/my_donations', async (request, response) => {
     console.log(data);
     response.render('showMyDonations', { data });
   } else {
-    response.send('please login to see what you have donated');
+    const data = {};
+    data.message = 'please login to see what you have donated';
+    response.render('null', { data });
   }
 });
+
+app.get('/request', async (request, response) => {
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const data = {};
+
+  if (loggedIn === 'true') {
+    try {
+      const schoolQuery = 'SELECT * FROM schools';
+      const schoolResult = await pool.query(schoolQuery);
+      data.schools = schoolResult.rows;
+      const uniformQuery = 'SELECT * FROM uniforms';
+      const uniformResult = await pool.query(uniformQuery);
+      data.uniforms = uniformResult.rows;
+      response.render('request', { data });
+    }
+    catch (err) {
+      console.error(err.message);
+      response.send('Cannot connect');
+    }
+  } else {
+    response.send('You need to login in');
+  }
+});
+
+app.post('/request', async (request, response) => {
+  const data = {};
+  if (request.cookies.loggedIn === 'true') {
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const {
+      school, type, quantity,
+    } = request.body;
+    const sizing = request.body.size;
+    const size = (String(sizing).replace(/ /g, '_').toUpperCase());
+
+    try {
+      const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
+      const schoolid = await pool.query(infoQuery);
+      const schoolID = schoolid.rows[0].school_id;
+      const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
+      const uniID = await pool.query(findUniId);
+      const uID = uniID.rows[0].id;
+      const findPotentialsQuery = `SELECT donor_id, COUNT(status) 
+                                   FROM inventory WHERE status = 'available' 
+                                   AND school_id = ${schoolID} 
+                                   AND uniform_id = ${uID} 
+                                   AND size = '${size}' 
+                                   GROUP BY donor_id 
+                                   HAVING COUNT(status) = ${quantity} 
+                                   ORDER BY donor_id`;
+      const findDonor = await pool.query(findPotentialsQuery);
+
+      if (findDonor.rows.length === 0) {
+        data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
+        response.render('null', { data });
+      }
+      const donorFound = findDonor.rows[0].donor_id;
+      console.log(donorFound);
+
+      const sqls = [];
+      const requestIds = [];
+      for (let i = 0; i < quantity; i += 1) {
+        const updateQuery = `UPDATE inventory SET status = 'reserved' 
+                             WHERE donor_id = ${donorFound}
+                             AND school_id = ${schoolID}
+                             AND uniform_id = ${uID}
+                             AND size = '${size}' RETURNING id`;
+        sqls.push(pool.query(updateQuery));
+      }
+
+      const rvs = await Promise.all(sqls);
+
+      // rvs.forEach((rv, idx) => {
+      //   console.log(`Result: ${idx}`, rv.rows);
+      // });
+      const insertSQLs = [];
+      const idObjArray = rvs[0].rows;
+      console.log('11111111111', idObjArray);
+      for (let j = 0; j < idObjArray.length; j += 1) {
+        const ind = idObjArray[j].id;
+        requestIds.push(ind);
+        const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${ind})`;
+        insertSQLs.push(pool.query(requestTBQuery));
+      }
+      console.log(insertSQLs);
+      await Promise.all(insertSQLs);
+      data.message = 'Request Successful';
+      response.render('null', { data });
+    } catch (err) {
+      console.error(err.message); // wont break
+    }
+  } else {
+    data.message = 'Only members can request';
+    response.render('null', { data });
+  }
+});
+
+app.get('/my_requests', async (request, response) => {
+  if (request.cookies.loggedIn === 'true') {
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const sqlQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        INNER JOIN donation_request
+                        ON inventory_id = inventory.id
+                        WHERE recipient_id = ${userID}
+                        GROUP BY school_name, type, size , status`;
+
+    // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
+
+    const results = await pool.query(sqlQuery);
+    const data = results.rows;
+    console.log(data);
+    response.render('showMyDonations', { data });
+  } else {
+    const data = {};
+    data.message = 'please login to see what you have donated';
+    response.render('null', { data });
+  }
+});
+
 // set port to listen
 app.listen(port);
