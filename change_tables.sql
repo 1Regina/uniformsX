@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   name TEXT,
   email TEXT,
@@ -10,18 +10,18 @@ CREATE TABLE users (
   
 );
 
-CREATE TABLE schools (
+CREATE TABLE IF NOT EXISTS schools (
   school_id SERIAL PRIMARY KEY,
   school_name TEXT,
   school_code TEXT
 );
 
-CREATE TABLE uniforms (
+CREATE TABLE IF NOT EXISTS uniforms (
   id SERIAL PRIMARY KEY,
   type TEXT
 );
 
-CREATE TABLE inventory (
+CREATE TABLE IF NOT EXISTS inventory (
   id SERIAL PRIMARY KEY,
   donor_id INTEGER REFERENCES users(id),
   school_id INTEGER REFERENCES schools(school_id),
@@ -31,12 +31,17 @@ CREATE TABLE inventory (
   status TEXT DEFAULT 'available'
 );
 
-CREATE TABLE donation_Request (
+CREATE TABLE IF NOT EXISTS donation_Request (
   id SERIAL PRIMARY KEY,
   recipient_id INTEGER REFERENCES users(id),
   inventory_id INTEGER REFERENCES inventory(id),
   reserved_date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-
+CREATE TABLE IF NOT EXISTs chats (
+  id SERIAL PRIMARY KEY,
+  comment TEXT,
+  item_id INTEGER REFERENCES donation_Request(id),
+  chat_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)
 
