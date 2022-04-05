@@ -42,4 +42,29 @@ const getSchoolsList = (queryArray) => {
   });
   return schoolsArray;
 };
+
+// const summarizeManyItemsIntoObj = (everyData) => {
+//   const combineActionObj = {};
+//   everyData.forEach((item) => {
+//     if (combineActionObj[`note_${item.name}`]) {
+//       combineActionObj[`note_${item.name}`].on.push(item.action);
+//     } else {
+//       // new object
+//       const { notes_id, ...newItem } = item;
+//       newItem.action = [newItem.action]; // make it an array
+//       combineActionObj[`note_${item.notes_id}`] = newItem;
+//     }
+//   });
+//   const arrayOfObjects = Object.keys(combineActionObj).map((key) => {
+//     const ar = combineActionObj[key];
+
+//     // Apppend key if one exists (optional)
+//     ar.key = key;
+
+//     return ar;
+//   });
+
+//   const details = arrayOfObjects;
+//   return details;
+// };
 export { whenQueryDone, updateMembership, getSchoolsList };
