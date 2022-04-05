@@ -1,4 +1,4 @@
-import express, { response } from 'express';
+import express from 'express';
 import methodOverride from 'method-override';
 
 import cookieParser from 'cookie-parser';
@@ -7,7 +7,6 @@ import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
 
-import { request } from 'http';
 import pool from './initPool.js';
 import { updateMembership, getSchoolsList } from './helper_functions.js';
 
@@ -313,6 +312,7 @@ app.post('/request', async (request, response) => {
 
       if (findDonor.rows.length === 0) {
         data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
+        alert(`you need to adjust your qty`)
         response.render('null', { data });
       }
       const donorFound = findDonor.rows[0].donor_id;
@@ -345,6 +345,13 @@ app.post('/request', async (request, response) => {
       }
       console.log(insertSQLs);
       await Promise.all(insertSQLs);
+
+      const findDonorQuery = `SELECT email, name, reserved_date
+                              FROM users 
+                              INNER JOIN inventory 
+                              ON users.id = donor_id
+                              INNER JOIN donation_request
+                              ON inventory.id=inventory_id`;
       data.message = 'Request Successful';
       response.render('null', { data });
     } catch (err) {
@@ -383,6 +390,47 @@ app.get('/my_requests', async (request, response) => {
     data.message = 'please login to see what you have donated';
     response.render('null', { data });
   }
+});
+
+app.get('/test', async (request, response) => {
+  const findDonorQuery = `SELECT email, name, COUNT(reserved_date), 
+                                 school_name, type, size
+                          FROM users 
+                          INNER JOIN inventory 
+                          ON users.id = donor_id
+                          INNER JOIN donation_request
+                          ON inventory.id=inventory_id
+                          INNER JOIN schools
+                          ON schools.school_id = inventory.school_id
+                          INNER JOIN uniforms
+                          ON uniforms.id = uniform_id
+                          WHERE reserved_date::date = now()::date
+                          GROUP BY email, name, school_name, type, size
+                          `;
+  const resultDonor = await pool.query(findDonorQuery);
+  const num = resultDonor.rows.length;
+  const lastReq = resultDonor.rows[num - 1];
+  console.log(lastReq);
+  response.send(lastReq);
+
+  // const sgMail = require('@sendgrid/mail')();
+
+  // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  // const msg = {
+  //   to: '1reginacheong@example.com', // Change to your recipient
+  //   from: 'regina_cheong@example.com', `${lastReq.email}`,// Change to your verified sender
+  //   subject: `Request for your donated ${lastReq.school_name} uniforms`,
+  //   text: `There is a request for the '${lastReq.count}' '${lastReq.school_name}' '${lastReq.type}' of size '${lastReq.size}'. `,
+  //   html: `<strong>There is a request for the '${lastReq.count}' '${lastReq.school_name}' '${lastReq.type}' of size '${lastReq.size}'.</strong>`,
+  // };
+  // sgMail
+  //   .send(msg)
+  //   .then(() => {
+  //     console.log('Email sent');
+  // })
+  // .catch((error) => {
+  //   console.error(error);
+  // });
 });
 
 // set port to listen
