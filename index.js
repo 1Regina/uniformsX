@@ -6,7 +6,7 @@ import bodyParser from 'body-parser';
 import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
-
+import sgMail from '@sendgrid/mail';
 import pool from './initPool.js';
 import { updateMembership, getSchoolsList } from './helper_functions.js';
 
@@ -294,6 +294,17 @@ app.post('/request', async (request, response) => {
     const size = (String(sizing).replace(/ /g, '_').toUpperCase());
 
     try {
+      const findReqQtyQuery = `SELECT COUNT (inventory_id) 
+                               FROM donation_request
+                               WHERE recipient_id = ${userID} `;
+      const findRecipTot = await pool.query(findReqQtyQuery);
+      const recipientTotal = findRecipTot.rows[0].count;
+      if ((recipientTotal + quantity) >= 20) {
+        // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
+        data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
+        response.render('null', { data });
+      }
+
       const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
       const schoolid = await pool.query(infoQuery);
       const schoolID = schoolid.rows[0].school_id;
@@ -312,7 +323,8 @@ app.post('/request', async (request, response) => {
 
       if (findDonor.rows.length === 0) {
         data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
-        alert(`you need to adjust your qty`)
+        // todo: check why alert is not working
+        // alert('you need to adjust your qty');
         response.render('null', { data });
       }
       const donorFound = findDonor.rows[0].donor_id;
@@ -345,14 +357,52 @@ app.post('/request', async (request, response) => {
       }
       console.log(insertSQLs);
       await Promise.all(insertSQLs);
+      // find and alert donor
+      const findDonorQuery = `SELECT email, name, COUNT(reserved_date), 
+                                 school_name, type, size
+                          FROM users 
+                          INNER JOIN inventory 
+                          ON users.id = donor_id
+                          INNER JOIN donation_request
+                          ON inventory.id=inventory_id
+                          INNER JOIN schools
+                          ON schools.school_id = inventory.school_id
+                          INNER JOIN uniforms
+                          ON uniforms.id = uniform_id
+                          WHERE reserved_date::date = now()::date
+                          GROUP BY email, name, school_name, type, size`;
+      const resultDonor = await pool.query(findDonorQuery);
+      const num = resultDonor.rows.length;
+      const lastReq = resultDonor.rows[num - 1];
+      console.log(lastReq);
+      response.send(lastReq);
 
-      const findDonorQuery = `SELECT email, name, reserved_date
-                              FROM users 
-                              INNER JOIN inventory 
-                              ON users.id = donor_id
-                              INNER JOIN donation_request
-                              ON inventory.id=inventory_id`;
-      data.message = 'Request Successful';
+      // const sgMail = require('@sendgrid/mail')();
+
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      const msg = {
+        // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
+        to: [
+          {
+            email: '1reginacheong@gmail.com',
+          },
+          {
+            email: `${lastReq.email}`,
+          }],
+        from: 'regina_cheong@hotmail.com', // Change to your verified sender
+        subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
+        text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
+        html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
+      };
+      sgMail
+        .send(msg)
+        .then(() => {
+          console.log('Email sent');
+        })
+        .catch((error) => {
+          console.error(error);
+        });
+      data.message = 'Request Successful and the donor is notified via email';
       response.render('null', { data });
     } catch (err) {
       console.error(err.message); // wont break
@@ -415,22 +465,29 @@ app.get('/test', async (request, response) => {
 
   // const sgMail = require('@sendgrid/mail')();
 
-  // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  // const msg = {
-  //   to: '1reginacheong@example.com', // Change to your recipient
-  //   from: 'regina_cheong@example.com', `${lastReq.email}`,// Change to your verified sender
-  //   subject: `Request for your donated ${lastReq.school_name} uniforms`,
-  //   text: `There is a request for the '${lastReq.count}' '${lastReq.school_name}' '${lastReq.type}' of size '${lastReq.size}'. `,
-  //   html: `<strong>There is a request for the '${lastReq.count}' '${lastReq.school_name}' '${lastReq.type}' of size '${lastReq.size}'.</strong>`,
-  // };
-  // sgMail
-  //   .send(msg)
-  //   .then(() => {
-  //     console.log('Email sent');
-  // })
-  // .catch((error) => {
-  //   console.error(error);
-  // });
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  const msg = {
+    // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
+    to: [
+      {
+        email: '1reginacheong@gmail.com',
+      },
+      {
+        email: `${lastReq.email}`,
+      }],
+    from: 'regina_cheong@hotmail.com', // Change to your verified sender
+    subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
+    text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
+    html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
+  };
+  sgMail
+    .send(msg)
+    .then(() => {
+      console.log('Email sent');
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 });
 
 // set port to listen
