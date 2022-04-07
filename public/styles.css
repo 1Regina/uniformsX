@@ -1,11 +1,11 @@
 .jumbotron {
   background-color: rgba(24, 23, 23, 0);
-  margin: 0px 10px;
+  margin: 0px 0px;
   /* border: white solid 10px; */
   /* background-image: url('https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg'); */
   background-repeat: no-repeat;
   /* color:darkgrey; */
-  height: 200px;
+  /* height: 200px; */
   background-size: 100%;
   font-weight: 100;
   font-family: Haettenschweiler, "Arial Narrow Bold", sans-serif;
@@ -22,9 +22,9 @@
 body {
   background: url("")
     /*https://www.birdlife.org/wp-content/uploads/2021/09/little_spiderhunter_c_noicherrybeans_shutterstock_smaller_1-1024x494.jpg */
-    /*https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg*/ no-repeat center center
-    fixed;
-
+    /* https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg no-repeat center center */
+    no-repeat;
+    background-size: 100%;
 
 }
 
@@ -32,12 +32,12 @@ body {
   text-transform: capitalize;
 }
 
- th, td {
-  border-color: #96D4D4;
+th,
+td {
+  border-color: #96d4d4;
 }
 
-
-.center{
+.center {
   display: flex;
-  justify-content: center; 
+  justify-content: center;
 }

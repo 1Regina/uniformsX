@@ -300,12 +300,11 @@ app.post('/request', async (request, response) => {
                                WHERE recipient_id = ${userID} `;
       const findRecipTot = await pool.query(findReqQtyQuery);
       const recipientTotal = findRecipTot.rows[0].count;
-      if ((recipientTotal + quantity) >= 20) {
-        // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
-        data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
-        response.render('null', { data });
-      }
-
+      // if ((recipientTotal + quantity) >= 20) {
+      //   // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
+      //   data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
+      //   response.render('null', { data });
+      // }
       const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
       const schoolid = await pool.query(infoQuery);
       const schoolID = schoolid.rows[0].school_id;
@@ -376,7 +375,8 @@ app.post('/request', async (request, response) => {
       const num = resultDonor.rows.length;
       const lastReq = resultDonor.rows[num - 1];
       console.log(lastReq);
-      response.send(lastReq);
+
+      response.redirect('/my_requests');
 
       // const sgMail = require('@sendgrid/mail')();
 
@@ -462,8 +462,8 @@ app.get('/test', async (request, response) => {
   const num = resultDonor.rows.length;
   const lastReq = resultDonor.rows[num - 1];
   console.log(lastReq);
-  response.send(lastReq);
-
+  // response.send(lastReq);
+  response.redirect('/my_requests');
   // const sgMail = require('@sendgrid/mail')();
 
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -489,25 +489,6 @@ app.get('/test', async (request, response) => {
     .catch((error) => {
       console.error(error);
     });
-
-    // weather
-  const options = {
-    method: 'GET',
-    url: 'https://aerisweather1.p.rapidapi.com/forecasts/singapore,%20orchard',
-    params: {
-      from: '2022-04-02', plimit: '30', filter: 'day', to: '2022-05-02',
-    },
-    headers: {
-      'X-RapidAPI-Host': 'aerisweather1.p.rapidapi.com',
-      'X-RapidAPI-Key': 'a574bc63e8msh394553ea4434071p1acb83jsn221fa4a5d9cc',
-    },
-  };
-
-  axios.request(options).then((response) => {
-    console.log(response.data);
-  }).catch((error) => {
-    console.error(error);
-  });
 });
 
 // set port to listen
