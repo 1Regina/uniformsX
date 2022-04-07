@@ -29,6 +29,7 @@
       <th scope="col">Size</th>
        <th scope="col">Status</th>
       <th scope="col">Quantity</th>
+      <th scope="col">Date</th>
     </tr>
   </thead>
   <tbody>
@@ -40,6 +41,7 @@
       <td><%=data[i].size%></td>
       <td><%=data[i].status%></td>
       <td><%=data[i].count%></td>
+      <td><%=data[i].date.toString().substring(0,15)%></td>
     </tr>
      <% }; %>
    

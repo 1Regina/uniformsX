@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 import jsSHA from 'jssha';
 import path from 'path';
 import dotenv from 'dotenv';
+import axios from 'axios';
 import sgMail from '@sendgrid/mail';
 import pool from './initPool.js';
 import { updateMembership, getSchoolsList } from './helper_functions.js';
@@ -238,14 +239,14 @@ app.get('/my_donations', async (request, response) => {
     const { userEmail, userID, loggedIn } = request.cookies;
     const donatQuery = `SELECT school_name, 
                                type,
-                               COUNT(inventory.school_id), size, status
+                               COUNT(inventory.school_id), size, status, DATE(created_on)
                         FROM schools
                         INNER JOIN inventory
                         ON schools.school_id = inventory.school_id
                         INNER JOIN uniforms
                         ON uniforms.id=inventory.uniform_id
                         WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status`;
+                        GROUP BY school_name, type, size , status, date`;
 
     // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
 
@@ -418,7 +419,7 @@ app.get('/my_requests', async (request, response) => {
     const { userEmail, userID, loggedIn } = request.cookies;
     const sqlQuery = `SELECT school_name, 
                                type,
-                               COUNT(inventory.school_id), size, status
+                               COUNT(inventory.school_id), size, status, DATE(reserved_date)
                         FROM schools
                         INNER JOIN inventory
                         ON schools.school_id = inventory.school_id
@@ -427,7 +428,7 @@ app.get('/my_requests', async (request, response) => {
                         INNER JOIN donation_request
                         ON inventory_id = inventory.id
                         WHERE recipient_id = ${userID}
-                        GROUP BY school_name, type, size , status`;
+                        GROUP BY school_name, type, size , status, date`;
 
     // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
 
@@ -437,7 +438,7 @@ app.get('/my_requests', async (request, response) => {
     response.render('showMyDonations', { data });
   } else {
     const data = {};
-    data.message = 'please login to see what you have donated';
+    data.message = 'please login to see what you have requested';
     response.render('null', { data });
   }
 });
@@ -488,6 +489,25 @@ app.get('/test', async (request, response) => {
     .catch((error) => {
       console.error(error);
     });
+
+    // weather
+  const options = {
+    method: 'GET',
+    url: 'https://aerisweather1.p.rapidapi.com/forecasts/singapore,%20orchard',
+    params: {
+      from: '2022-04-02', plimit: '30', filter: 'day', to: '2022-05-02',
+    },
+    headers: {
+      'X-RapidAPI-Host': 'aerisweather1.p.rapidapi.com',
+      'X-RapidAPI-Key': 'a574bc63e8msh394553ea4434071p1acb83jsn221fa4a5d9cc',
+    },
+  };
+
+  axios.request(options).then((response) => {
+    console.log(response.data);
+  }).catch((error) => {
+    console.error(error);
+  });
 });
 
 // set port to listen
