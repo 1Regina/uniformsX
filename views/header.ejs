@@ -20,13 +20,20 @@
 
 <body>
 
-  <nav class="navbar sticky-top navbar-expand-lg navbar-light w-100" style="background-color: plum">
+  <nav class="navbar sticky-top navbar-expand-lg text-primary w-100" style="background-color: whitesmoke">
 
     <a class="navbar-brand" href="/"><img src="/nobg.png" width="80" height="80">
-      <span class="navbar-text">
-        <b>  &nbsp; &nbsp; UniformX</b> - Sharing within the community
-      </span>
+      <span class="navbar-text" font-family="Copperplate">
 
+        <font size="6" face="Copperplate" color="#06a3a3">
+          <b> &nbsp; &nbsp; UniformX</b>
+        </font>
+      </span>
+      <span class="navbar-text">
+        <font size="4" face="verdana" color="grey">
+          <i> - Sharing within the community</i>
+        </font>
+      </span>
 
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
@@ -44,15 +51,11 @@
         </li>
         <a class="nav-link" href="/signup">SignUp</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/login"> Login</a>
-        </li>
+
         <li class="nav-item">
           <a class="nav-link" href="/primary_school"> Primary</a>
         </li>
-        <li class="nav-item">
-          <a class="nav-link" href="/secondary_school"> Secondary</a>
-        </li>
+
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
             aria-haspopup="true" aria-expanded="false">
@@ -61,9 +64,13 @@
           <div class="dropdown-menu" aria-labelledby="navbarDropdown">
             <a class="dropdown-item" href="/my_donations">My Donations</a>
             <a class="dropdown-item" href="/my_requests">My Requests</a>
-            <form action="/logout?_method=DELETE" method="POST"><input type="submit" name="submit" value="Logout"
-                class="dropdown-item"></form>
+            <a class="dropdown-item" href="/logout"> Logout</a>
+            <!-- <form action="/logout?_method=DELETE" method="POST"><input type="submit" name="submit" value="Logout"
+                class="dropdown-item"></form> -->
           </div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/login"> Login</a>
         </li>
       </ul>
     </div>
