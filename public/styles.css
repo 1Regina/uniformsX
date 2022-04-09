@@ -20,14 +20,15 @@
 }
 
 body {
-  background: url("")
+  /* background: url("") */
     /*https://www.birdlife.org/wp-content/uploads/2021/09/little_spiderhunter_c_noicherrybeans_shutterstock_smaller_1-1024x494.jpg */
     /* https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg no-repeat center center */
-    no-repeat;
-    background-size: 100%;
+    /* no-repeat; */
+    /* background-size: 100%; */
+    background-color: rgba(64, 224, 208, 40%);
+
 
 }
-
 .capitalize {
   text-transform: capitalize;
 }
@@ -37,7 +38,21 @@ td {
   border-color: #96d4d4;
 }
 
+tr:nth-child(even) {
+  background-color: whitesmoke;
+}
+
+th {
+  background-color: gainsboro;
+  }
+
+table {
+  background-color: azure
+}
+
 .center {
   display: flex;
   justify-content: center;
 }
+
+.circular--square { border-radius: 50%; }
