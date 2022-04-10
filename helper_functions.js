@@ -67,4 +67,10 @@ const getSchoolsList = (queryArray) => {
 //   const details = arrayOfObjects;
 //   return details;
 // };
-export { whenQueryDone, updateMembership, getSchoolsList };
+
+export {
+  whenQueryDone,
+  updateMembership,
+  getSchoolsList,
+
+};
