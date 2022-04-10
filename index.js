@@ -116,6 +116,10 @@ app.post('/login', (request, response) => {
     });
 });
 
+app.get('/faq', (request, response) => {
+  response.render('faq');
+});
+
 app.get('/my_profile', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
   // let data = {};
