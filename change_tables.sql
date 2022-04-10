@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
   phone VARCHAR(8),
   is_donor BOOLEAN,
   is_recipient BOOLEAN,
-  created_on TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  
+  created_on TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  photo TEXT
 );
 
 CREATE TABLE IF NOT EXISTS schools (
@@ -44,4 +44,7 @@ CREATE TABLE IF NOT EXISTs chats (
   item_id INTEGER REFERENCES donation_Request(id),
   chat_time TIMESTAMPTZ NOT NULL DEFAULT NOW()
 )
+
+
+
 

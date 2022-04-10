@@ -21,13 +21,11 @@
 
 body {
   /* background: url("") */
-    /*https://www.birdlife.org/wp-content/uploads/2021/09/little_spiderhunter_c_noicherrybeans_shutterstock_smaller_1-1024x494.jpg */
-    /* https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg no-repeat center center */
-    /* no-repeat; */
-    /* background-size: 100%; */
-    background-color: rgba(64, 224, 208, 40%);
-
-
+  /*https://www.birdlife.org/wp-content/uploads/2021/09/little_spiderhunter_c_noicherrybeans_shutterstock_smaller_1-1024x494.jpg */
+  /* https://cdn.wallpapersafari.com/26/86/JVBmGR.jpg no-repeat center center */
+  /* no-repeat; */
+  /* background-size: 100%; */
+  background-color: rgba(64, 224, 208, 40%);
 }
 .capitalize {
   text-transform: capitalize;
@@ -44,10 +42,10 @@ tr:nth-child(even) {
 
 th {
   background-color: gainsboro;
-  }
+}
 
 table {
-  background-color: azure
+  background-color: azure;
 }
 
 .center {
@@ -55,7 +53,10 @@ table {
   justify-content: center;
 }
 
-.circular--square { border-radius: 50%; }
+.circular--square {
+  border-radius: 50%;
+  border: 10px solid #06a3a3;
+}
 
 /* FAQ */
 /* Style the buttons that are used to open and close the accordion panel */
@@ -72,7 +73,8 @@ table {
 }
 
 /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
-.active, .accordion:hover {
+.active,
+.accordion:hover {
   background-color: #ccc;
 }
 
@@ -85,7 +87,7 @@ table {
 }
 
 .accordion:after {
-  content: '\02795'; /* Unicode character for "plus" sign (+) */
+  content: "\02795"; /* Unicode character for "plus" sign (+) */
   font-size: 13px;
   color: #777;
   float: right;

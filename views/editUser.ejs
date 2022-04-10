@@ -18,18 +18,11 @@
       </h3>
       <br>
       <br>
-      
-      <form action="/edit_profile?_method=PUT" method="POST">
-        <img class="circular--square" src="/acsj.png"/>
-        <br>
-        <br>
-        <% for (const [key,value] of Object.entries(data)) {%>
-          <% if (key==="photo" ) {%>
-           <img class="circular--square" src="<%=data.photo%>" />         
-            <%}%> 
 
-        
-        
+      <form action="/edit_profile?_method=PUT" method="POST">
+
+        <% for (const [key,value] of Object.entries(data)) {%>
+
           <% if ((key==="name" ) || (key==="phone" )) {%>
             <label for="<%= key %>">
               <h6>

@@ -1,6 +1,5 @@
 import express from 'express';
 import methodOverride from 'method-override';
-
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
 import jsSHA from 'jssha';
@@ -13,7 +12,7 @@ import {
   dynamicAscSort, dynamicDescSort, sortDonations, sortRequests,
 } from './sorts.js';
 import {
-  updateMembership, getSchoolsList,
+  updateMembership, getSchoolsList, singleFileUpload,
 } from './helper_functions.js';
 
 const envFilePath = 'uniforms.env';
@@ -30,6 +29,9 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 // Override POST requests with query param ?_method=PUT to be PUT requests
 app.use(methodOverride('_method'));
+// folder to hold photos of users
+app.use(express.static('uploads'));
+
 // Set view engine
 app.set('view engine', 'ejs');
 const port = 3004;
@@ -67,6 +69,31 @@ app.post('/signup', async (request, response) => {
   // if (!updRv) return "ok";
   await updateMembership(member, id);
   response.send('sign success');
+});
+
+app.get('/add_photo', (request, response) => {
+  response.render('uploadPhoto');
+});
+
+// add multer middleware
+app.post('/add_photo', singleFileUpload, (request, response) => {
+  console.log(request.file);
+  const { userEmail, userID, loggedIn } = request.cookies;
+
+  // get the photo column value from request.file
+  const photoName = request.file.originalname;
+  const sqlQuery = `UPDATE users SET photo = '${photoName}' WHERE id = ${userID} RETURNING *`;
+
+  // Query using pg.Pool instead of pg.Client
+  pool.query(sqlQuery, (error, result) => {
+    if (error) {
+      console.log('Error executing query', error.stack);
+      response.status(503).send('Something went wrong');
+      return;
+    }
+    // response.send(result.rows[0]);
+    response.redirect('/my_profile');
+  });
 });
 
 app.get('/login', (request, response) => {
@@ -112,7 +139,7 @@ app.post('/login', (request, response) => {
       ]);
       response.cookie('userID', `${user.id}`);
       response.cookie('loggedIn', true);
-      return response.redirect('/signup');
+      return response.redirect('/my_profile');
     });
 });
 
@@ -146,9 +173,10 @@ app.put('/edit_profile', async (request, response) => {
   const { name, phone, photo } = request.body;
   const { userEmail, userID, loggedIn } = request.cookies;
   const updateQuery = `UPDATE users 
-                        SET name = '${name}', phone = '${phone}', photo = '${photo}'
-                        WHERE id = '${userID}'`;
+                        SET name = '${name}', phone = '${phone}'
+                        WHERE id = ${userID} RETURNING *`;
   await pool.query(updateQuery);
+  response.redirect('/my_profile');
 });
 
 // LOG OUT clear cookie

@@ -1,3 +1,4 @@
+import multer from 'multer';
 import pg from 'pg';
 // Initialise DB connection
 const { Pool } = pg;
@@ -43,6 +44,19 @@ const getSchoolsList = (queryArray) => {
   return schoolsArray;
 };
 
+// * Save file with original filename ie. hello.jpg/ hello.png
+const storage = multer.diskStorage({
+  destination: (req, file, callback) => {
+    callback(null, 'uploads/');
+  },
+  filename: (req, file, callback) => {
+    callback(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage });
+const singleFileUpload = upload.single('photo');
+
 // const summarizeManyItemsIntoObj = (everyData) => {
 //   const combineActionObj = {};
 //   everyData.forEach((item) => {
@@ -72,5 +86,5 @@ export {
   whenQueryDone,
   updateMembership,
   getSchoolsList,
-
+  singleFileUpload,
 };

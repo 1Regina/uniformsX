@@ -17,50 +17,51 @@
         <%=data.message%>
       </h3>
       <br>
-      <br>
 
-
-      <img class="circular--square" src="/acsj.png" />
+      <img class="circular--square" src="<%=data.photo%>" width="280" height="280" />
+      <div class="col-sm-2">
+        <% let url=`/add_photo` %>
+          <a href="<%=url %>">
+            <%='update photo'%>
+          </a>
+      </div>
       <br>
       <br>
       <% for (const [key,value] of Object.entries(data)) {%>
-        <% if (key==="photo" ) {%>
-          <img class="circular--square" src="<%=data.photo%>" />
+
+        <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
+          <ul>
+            <h6>
+              <%=key%>
+            </h6>
+            <p class="text-muted">
+              <%=value%>
+            </p>
+          </ul>
           <%}%>
 
-            <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
+            <% if (key==="created_on" ) {%>
               <ul>
                 <h6>
-                  <%=key%>
+                  <%='Member since' %>
                 </h6>
                 <p class="text-muted">
-                  <%=value%>
+                  <%=value.toString().substring(0,15)%>
                 </p>
               </ul>
               <%}%>
+                <%}%>
 
-                <% if (key==="created_on" ) {%>
-                  <ul>
-                    <h6>
-                      <%='Member since' %>
-                    </h6>
-                    <p class="text-muted">
-                      <%=value.toString().substring(0,15)%>
-                    </p>
-                  </ul>
-                  <%}%>
-                    <%}%>
+                  <br>
+                  <br>
 
-                      <br>
-                      <br>
-
-                <div class="col-sm-1">
-                  <% let update_id=`update ${data.id}` %>
-                    <form action="/edit_Profile" method="GET">
-                      <input type="submit" value="Update" <%=id=update_id %>/>
-                    </form>
-                </div>
-      </div>
+                  <div class="col-sm-1">
+                    <% let update_id=`update ${data.id}` %>
+                      <form action="/edit_Profile" method="GET">
+                        <input type="submit" value="Update" <%=id=update_id %>/>
+                      </form>
+                  </div>
+    </div>
 </body>
 
 </html>
