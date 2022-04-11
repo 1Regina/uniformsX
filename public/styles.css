@@ -38,6 +38,7 @@ body {
   border-color: rgb(6, 163, 163);
 }
 
+/* add to header to drop the mission statement when in phone size*/
 @media only screen and (max-width: 768px) {
   .brand-name {
     display: none;
