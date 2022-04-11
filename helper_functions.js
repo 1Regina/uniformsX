@@ -46,11 +46,12 @@ const getSchoolsList = (queryArray) => {
 
 // * Save file with original filename ie. hello.jpg/ hello.png
 const storage = multer.diskStorage({
+
   destination: (req, file, callback) => {
     callback(null, 'uploads/');
   },
   filename: (req, file, callback) => {
-    callback(null, file.originalname);
+    callback(null, (`${req.cookies.userEmail}_${file.originalname}`));
   },
 });
 

@@ -81,7 +81,8 @@ app.post('/add_photo', singleFileUpload, (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
 
   // get the photo column value from request.file
-  const photoName = request.file.originalname;
+  const photo = request.file.originalname;
+  const photoName = `${userEmail}_${photo}`;
   const sqlQuery = `UPDATE users SET photo = '${photoName}' WHERE id = ${userID} RETURNING *`;
 
   // Query using pg.Pool instead of pg.Client
@@ -92,6 +93,7 @@ app.post('/add_photo', singleFileUpload, (request, response) => {
       return;
     }
     // response.send(result.rows[0]);
+
     response.redirect('/my_profile');
   });
 });
