@@ -206,10 +206,19 @@ app.get('/primary_school', (request, response) => {
 app.post('/find_school', async (request, response) => {
   const { schoolProxy } = request.body;
   console.log('aaa', schoolProxy);
-  const school = schoolProxy[0].toUpperCase() + schoolProxy.slice(1);
+  // const school = schoolProxy[0].toUpperCase() + schoolProxy.slice(1);
+  const splitStr = schoolProxy.toLowerCase().split(' ');
+  for (let i = 0; i < splitStr.length; i += 1) {
+    splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
+  }
+  const school = splitStr.join(' ');
   const possibilityQuery = `SELECT * FROM schools WHERE school_name LIKE '%${school}%'`;
   const possiblitlies = await pool.query(possibilityQuery);
   const data = possiblitlies.rows;
+  if (data.length === 0) {
+    data.message = 'There is no school matching your search. Please try another school';
+    // response.render('allSchools_filtered', { data });
+  }
   response.render('allSchools_filtered', { data });
 });
 
