@@ -219,6 +219,7 @@ app.post('/find_school', async (request, response) => {
     data.message = 'There is no school matching your search. Please try another school';
     // response.render('allSchools_filtered', { data });
   }
+  data.message = `There is/are ${data.length} school(s) that match(es) your search.`;
   response.render('allSchools_filtered', { data });
 });
 
