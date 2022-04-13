@@ -198,9 +198,19 @@ app.get('/primary_school', (request, response) => {
   const allSchoolQuery = "SELECT * FROM schools WHERE school_code LIKE 'P_%'";
   pool.query(allSchoolQuery).then((allSchools) => {
     const data = allSchools.rows;
-    console.log(data);
+    // console.log(data);
     response.render('allSchools', { data });
   });
+});
+
+app.post('/find_school', async (request, response) => {
+  const { schoolProxy } = request.body;
+  console.log('aaa', schoolProxy);
+  const school = schoolProxy[0].toUpperCase() + schoolProxy.slice(1);
+  const possibilityQuery = `SELECT * FROM schools WHERE school_name LIKE '%${school}%'`;
+  const possiblitlies = await pool.query(possibilityQuery);
+  const data = possiblitlies.rows;
+  response.render('allSchools_filtered', { data });
 });
 
 app.get('/secondary_school', (request, response) => {
