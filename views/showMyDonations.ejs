@@ -20,35 +20,38 @@
           Arrange By
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-          <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/date/asc">Date (Earliest)</a></li>
+          <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/date/asc">Date (Earliest)</a>
+          </li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/date/desc">Date (Latest)</a></li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/type/asc">Type (A-Z)</a></li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/type/desc">Type (Z-A)</a></li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/quantity/asc">Quantity(Asc)</a>
           </li>
-          <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/quantity/desc">Quantity (Desc)</a>
+          <li><a class="dropdown-item" href="http://localhost:3004/my_donations-sortby/quantity/desc">Quantity
+              (Desc)</a>
           </li>
         </ul>
       </div>
     </div>
-    
+
     <div class="center">
       <div class="row justify-content-sm-center">
 
-        <div class="col-sm-8" style="padding-bottom: 30px;">
+        <div class="col-sm-9" style="padding-bottom: 30px;">
           <h4>
             <%='Reserved items' %>
           </h4>
           <table class="table table-md table-striped table-hover  table-bordered ">
             <thead>
               <tr>
-                <th scope="col">#</th>
+                <th scope="col" name="reserved_row">#</th>
                 <th scope="col">School</th>
                 <th scope="col">Type</th>
                 <th scope="col">Size</th>
                 <th scope="col">Status</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Date</th>
+                <th scope="col">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -76,6 +79,12 @@
                     <td>
                       <%=data[i].date.toString().substring(0,15)%>
                     </td>
+                    <td>
+                      <% let given_id=`given ${i}` %>
+                        <form action="/reserved/<%=i%>/edit?_method=PUT" method="POST">
+                          <input type="submit" value="Given" <%=id=given_id %> class="btn btn-warning"/>
+                        </form>
+                    </td>
                   </tr>
                   <% }; %>
                     <% }; %>
@@ -83,14 +92,14 @@
           </table>
         </div>
 
-  <div class="col-sm-8" style="padding-bottom: 30px;">
-                    <h4>
-            <%='Collected items' %>
+        <div class="col-sm-9" style="padding-bottom: 30px;">
+          <h4>
+            <%='Given items' %>
           </h4>
           <table class="table table-md table-striped table-hover  table-bordered ">
             <thead>
               <tr>
-                <th scope="col">#</th>
+                <th scope="col" name="collected_row">#</th>
                 <th scope="col">School</th>
                 <th scope="col">Type</th>
                 <th scope="col">Size</th>
@@ -130,21 +139,23 @@
             </tbody>
           </table>
         </div>
-        
-        <div class="col-sm-8" style="padding-bottom: 30px;">
-                    <h4>
+
+        <div class="col-sm-9" style="padding-bottom: 30px;">
+          <h4>
             <%='Available items' %>
           </h4>
           <table class="table table-md table-striped table-hover  table-bordered ">
             <thead>
               <tr>
-                <th scope="col">#</th>
+                <th scope="col" name="available_row">#</th>
                 <th scope="col">School</th>
                 <th scope="col">Type</th>
                 <th scope="col">Size</th>
                 <th scope="col">Status</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Date</th>
+                <th scope="col">Action</th>
+
               </tr>
             </thead>
             <tbody>
@@ -172,15 +183,25 @@
                     <td>
                       <%=data[i].date.toString().substring(0,15)%>
                     </td>
+                    <td>
+                      <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                        <% let update_id=`update_${i}` %>
+                          <form action="/available/<%=i%>/edit" method="GET">
+                            <input type="submit" value="Update" <%=id=update_id%> class="btn btn-primary"/>
+                          </form>
+
+                          <% let delete_id=`delete ${i}` %>
+                            <form action="/delete/<%=i%>?" _method="DELETE" method="POST">
+                              <input type="submit" value="Delete" <%=id=delete_id %> class="btn btn-secondary"/>
+                            </form>
+                      </div>
+                    </td>
                   </tr>
                   <% }; %>
                     <% }; %>
             </tbody>
           </table>
         </div>
-
-              
-
       </div>
     </div>
 </body>
