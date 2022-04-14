@@ -36,6 +36,9 @@ app.use(express.static('uploads'));
 app.set('view engine', 'ejs');
 const port = 3004;
 
+app.get('/', (request, response) => {
+  response.render('home');
+});
 // 3 POCE6 User Auth
 app.get('/signup', (request, response) => {
   response.render('signup');
@@ -156,12 +159,17 @@ app.get('/faq', (request, response) => {
 
 app.get('/my_profile', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
-  // let data = {};
-  const userInfoQuery = `SELECT * FROM users WHERE id = ${userID}`;
-  const myInfo = await pool.query(userInfoQuery);
-  const data = myInfo.rows[0];
-  data.message = 'My Profile';
-  response.render('profile', { data });
+  const data = {};
+  if (loggedIn === 'true') {
+    const userInfoQuery = `SELECT * FROM users WHERE id = ${userID}`;
+    const myInfo = await pool.query(userInfoQuery);
+    const data = myInfo.rows[0];
+    data.message = 'My Profile';
+    response.render('profile', { data });
+  } else {
+    data.isLogin = false;
+    response.render('loginForm', { data });
+  }
 });
 
 app.get('/edit_profile', (request, response) => {
@@ -220,7 +228,7 @@ app.post('/find_school', async (request, response) => {
     // response.render('allSchools_filtered', { data });
   }
   data.message = `There is/are ${data.length} school(s) that match(es) your search.`;
-  response.render('allSchools_filtered', { data });
+  response.render('allSchools', { data });
 });
 
 app.get('/secondary_school', (request, response) => {
@@ -330,7 +338,7 @@ app.post('/donate', async (request, response) => {
   // }
 });
 
-app.get('/my_donations', async (request, response) => {
+app.get('/myyy_donations', async (request, response) => {
   if (request.cookies.loggedIn === 'true') {
     console.log('aaaaaaaaa');
     const { userEmail, userID, loggedIn } = request.cookies;
@@ -523,7 +531,7 @@ app.get('/my_requests', async (request, response) => {
     const { userEmail, userID, loggedIn } = request.cookies;
     const sqlQuery = `SELECT school_name, 
                                type,
-                               COUNT(inventory.school_id), size, status, DATE(reserved_date)
+                               COUNT(inventory.school_id), size, status, DATE(reserved_date), donor_id
                         FROM schools
                         INNER JOIN inventory
                         ON schools.school_id = inventory.school_id
@@ -532,7 +540,7 @@ app.get('/my_requests', async (request, response) => {
                         INNER JOIN donation_request
                         ON inventory_id = inventory.id
                         WHERE recipient_id = ${userID}
-                        GROUP BY school_name, type, size , status, date`;
+                        GROUP BY school_name, type, size , status, date, donor_id`;
 
     // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
 
@@ -553,24 +561,76 @@ app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
 
 app.get('/test', async (request, response) => {
   const data = {};
-  if (request.cookies.loggedIn === 'true') {
-    const { userEmail, userID, loggedIn } = request.cookies;
-    const { school, type, quantity } = request.body;
-    const sizing = request.body.size;
-    const size = String(sizing).replace(/ /g, '_').toUpperCase();
+  // if (request.cookies.loggedIn === 'true') {
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { school, type, quantity } = request.body;
+  const sizing = request.body.size;
+  const size = String(sizing).replace(/ /g, '_').toUpperCase();
 
+  try {
     const findReqQtyQuery = `SELECT COUNT (inventory_id) 
                                FROM donation_request
                                WHERE recipient_id = ${userID} `;
     const findRecipTot = await pool.query(findReqQtyQuery);
     const recipientTotal = findRecipTot.rows[0].count;
-    console.log('aaaaaa', recipientTotal);
-    if (recipientTotal + quantity >= 20) {
-      // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
-      data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
+    // if ((recipientTotal + quantity) >= 20) {
+    //   // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
+    //   data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
+    //   response.render('null', { data });
+    // }
+    const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
+    const schoolid = await pool.query(infoQuery);
+    const schoolID = schoolid.rows[0].school_id;
+    const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
+    const uniID = await pool.query(findUniId);
+    const uID = uniID.rows[0].id;
+    const findPotentialsQuery = `SELECT donor_id, COUNT(status) 
+                                   FROM inventory WHERE status = 'available' 
+                                   AND school_id = ${schoolID} 
+                                   AND uniform_id = ${uID} 
+                                   AND size = '${size}' 
+                                   GROUP BY donor_id 
+                                   HAVING COUNT(status) = ${quantity} 
+                                   ORDER BY donor_id`;
+    const findDonor = await pool.query(findPotentialsQuery);
+
+    if (findDonor.rows.length === 0) {
+      data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
+      // todo: check why alert is not working
+      // alert('you need to adjust your qty');
       response.render('null', { data });
     }
+    const donorFound = findDonor.rows[0].donor_id;
+    console.log(donorFound);
 
+    const sqls = [];
+    const requestIds = [];
+    for (let i = 0; i < quantity; i += 1) {
+      const updateQuery = `UPDATE inventory SET status = 'reserved' 
+                             WHERE donor_id = ${donorFound}
+                             AND school_id = ${schoolID}
+                             AND uniform_id = ${uID}
+                             AND size = '${size}' RETURNING id`;
+      sqls.push(pool.query(updateQuery));
+    }
+
+    const rvs = await Promise.all(sqls);
+
+    // rvs.forEach((rv, idx) => {
+    //   console.log(`Result: ${idx}`, rv.rows);
+    // });
+    const insertSQLs = [];
+    const idObjArray = rvs[0].rows;
+    console.log('11111111111', idObjArray);
+    for (let j = 0; j < idObjArray.length; j += 1) {
+      const ind = idObjArray[j].id;
+      requestIds.push(ind);
+      const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${ind})`;
+      insertSQLs.push(pool.query(requestTBQuery));
+    }
+    console.log(insertSQLs);
+    await Promise.all(insertSQLs);
+    // find and alert donor
     const findDonorQuery = `SELECT email, name, COUNT(reserved_date), 
                                  school_name, type, size
                           FROM users 
@@ -582,43 +642,175 @@ app.get('/test', async (request, response) => {
                           ON schools.school_id = inventory.school_id
                           INNER JOIN uniforms
                           ON uniforms.id = uniform_id
-                          WHERE reserved_date::date = now()::date-1
-                          GROUP BY email, name, school_name, type, size
-                          `;
+                          WHERE reserved_date::date = now()::date
+                          GROUP BY email, name, school_name, type, size`;
     const resultDonor = await pool.query(findDonorQuery);
     const num = resultDonor.rows.length;
     const lastReq = resultDonor.rows[num - 1];
-    console.log('bbbbbbbbbbbbbbb', lastReq);
-    response.send(lastReq);
-    // response.redirect('/my_requests');
+    console.log(lastReq);
+
+    response.redirect('/my_requests');
+
     // const sgMail = require('@sendgrid/mail')();
 
-    //   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    //   const msg = {
-    //   // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
-    //     to: [
-    //       {
-    //         email: '1reginacheong@gmail.com',
-    //       },
-    //       // {
-    //       //   email: `${lastReq.email}`,
-    //       // }
-    //     ],
-    //     from: 'regina_cheong@hotmail.com', // Change to your verified sender
-    //     subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
-    //     text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
-    //     html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
-    //   };
-    //   sgMail
-    //     .send(msg)
-    //     .then(() => {
-    //       console.log('Email sent');
-    //     })
-    //     .catch((error) => {
-    //       console.error(error);
-    //     });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const msg = {
+      // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
+      to: [
+        {
+          email: '1reginacheong@gmail.com',
+        },
+        {
+          email: `${lastReq.email}`,
+        },
+      ],
+      from: 'regina_cheong@hotmail.com', // Change to your verified sender
+      subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
+      text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
+      html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
+    };
+    sgMail
+      .send(msg)
+      .then(() => {
+        console.log('Email sent');
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+    data.message = 'Request Successful and the donor is notified via email';
+    response.render('null', { data });
+  } catch (err) {
+    console.error(err.message); // wont break
   }
 });
 
+app.get('/my_donations', async (request, response) => {
+  if (request.cookies.loggedIn === 'true') {
+    console.log('aaaaaaaaa');
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const donatQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status, DATE(created_on)
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        WHERE donor_id = ${userID}
+                        GROUP BY school_name, type, size , status, date
+                        ORDER BY school_name`;
+
+    // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
+
+    const results = await pool.query(donatQuery);
+    const data = results.rows;
+    console.log('asdasdas', data);
+    data.email = userEmail;
+    console.log(data);
+    response.render('showMyDonations', { data });
+  } else {
+    const data = {};
+    // data.message = 'Please sign in to see what you have donated';
+    // response.render('null', { data });
+    data.isLogin = false;
+    response.render('loginForm', { data });
+  }
+});
+
+app.get('/available/:setId/edit', async (request, response) => {
+  // response.cookie(``)
+  // const findInventId = `SELECT inventory.id WHERE
+  //                     `
+  
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { setId } = request.params;
+  try {
+    const sqlQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status, DATE(created_on)
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        WHERE donor_id = ${userID}
+                        GROUP BY school_name, type, size , status, date
+                        ORDER BY school_name`;
+    const result = await pool.query(sqlQuery);
+
+    // if (status_uni === 'available') {
+    // const data = result.rows[parseInt(setId)];
+    const data = {};
+    data.item = result.rows[parseInt(setId)];
+
+    const schoolQuery = 'SELECT * FROM schools';
+    const schoolResult = await pool.query(schoolQuery);
+    data.schools = schoolResult.rows;
+    const uniformQuery = 'SELECT * FROM uniforms';
+    const uniformResult = await pool.query(uniformQuery);
+    data.uniforms = uniformResult.rows;
+    console.log(data);
+    response.render('editItem', { data });
+
+    // response.send(data);
+  } catch (err) {
+    console.error(err.message);
+    response.send('Cannot connect');
+  }
+});
+
+app.put('/available/:setId/edit', async (request, response) => {
+  const {
+    school, type, size, quantity,
+  } = request.body;
+  const { userEmail, userID, loggedIn } = request.cookies;
+  // const findSchoolId = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
+  // const schoolResults = await pool.query(findSchoolId)
+  // const theSchool = schoolResults.rows[0]
+
+  const updateInventoryQuery = `UPDATE inventory 
+                        SET ..
+                        WHERE donor_id = ${userID} RETURNING *`;
+  await pool.query(updateQuery);
+  response.redirect('/my_donations');
+});
+
+app.delete('/delete/:setId', async (request, response) => {
+  const deleteQuery = `DELETE FROM inventory
+                      WHERE `;
+  await pool.query(deleteQuery);
+  response.redirect('/my_donations');
+});
+
+app.put('/reserved/:setId/edit', async (request, response) => {
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { setId } = request.params;
+  try {
+    const sqlQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status, DATE(created_on)
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        WHERE donor_id = ${userID}
+                        GROUP BY school_name, type, size , status, date
+                        ORDER BY school_name`;
+    const result = await pool.query(sqlQuery);
+
+    // if (status_uni === 'available') {
+    // const data = result.rows[parseInt(setId)];
+    const data = {};
+    data.item = result.rows[parseInt(setId)];
+
+    response.redirect('/my_donations');
+
+    // response.send(data);
+  } catch (err) {
+    console.error(err.message);
+    response.send('Cannot connect');
+  }
+});
 // set port to listen
 app.listen(port);
