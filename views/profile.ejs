@@ -12,7 +12,8 @@
 
 <body>
   <%- include('header') -%>
-    <div class="container capitalize">
+    <div class="container capitalize row justify-content-center">
+       <div class="col-4">
       <h3>
         <%=data.message%>
       </h3>
@@ -25,8 +26,9 @@
             <%='update photo'%>
           </a>
       </div>
-      <br>
-      <br>
+      </div>
+  
+       <div class="col-4">
       <% for (const [key,value] of Object.entries(data)) {%>
 
         <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
@@ -55,11 +57,12 @@
                   <br>
                   <br>
 
-                  <div class="col-sm-1">
+                  <div class="col-sm-1 ">
                     <% let update_id=`update ${data.id}` %>
                       <form action="/edit_Profile" method="GET">
                         <input type="submit" value="Update" <%=id=update_id %>/>
                       </form>
+                  </div>
                   </div>
     </div>
 </body>
