@@ -72,7 +72,7 @@ const sortDonations = async (request, response) => {
         : dynamicDescSort('count'),
     );
   }
-  response.render('showMyyyDonations', { data });
+  response.render('showMyDonations', { data });
 };
 
 const sortRequests = async (request, response) => {
