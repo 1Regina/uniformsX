@@ -37,7 +37,7 @@
     <div class="center">
       <div class="row justify-content-sm-center">
 
-        <div class="col-sm-9" style="padding-bottom: 30px;">
+        <div class="col-sm-8" style="padding-bottom: 30px;">
           <h4>
             <%='Reserved items' %>
           </h4>
@@ -57,7 +57,7 @@
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
                 <%if (data[i].status==='reserved' ) {%>
-                  <tr>
+                  <tr >
                     <th scope="row">
                       <%=i+1%>
                     </th>
@@ -82,7 +82,7 @@
                     <td>
                       <% let given_id=`given ${i}` %>
                         <form action="/reserved/<%=i%>/edit?_method=PUT" method="POST">
-                          <input type="submit" value="Given" <%=id=given_id %> class="btn btn-warning"/>
+                          <input type="submit" value="Given" id=<%=given_id %> class="btn btn-warning"/>
                         </form>
                     </td>
                   </tr>
@@ -92,7 +92,7 @@
           </table>
         </div>
 
-        <div class="col-sm-9" style="padding-bottom: 30px;">
+        <div class="col-sm-8" style="padding-bottom: 30px;">
           <h4>
             <%='Given items' %>
           </h4>
@@ -140,7 +140,7 @@
           </table>
         </div>
 
-        <div class="col-sm-9" style="padding-bottom: 30px;">
+        <div class="col-sm-8" style="padding-bottom: 30px;">
           <h4>
             <%='Available items' %>
           </h4>
@@ -160,41 +160,47 @@
             </thead>
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
+                  <form action="/details/<%=i%>/edit" method="POST">
                 <%if (data[i].status==='available' ) {%>
                   <tr>
                     <th scope="row">
                       <%=i+1%>
                     </th>
                     <td>
+                       <input type="hidden" value="<%=data[i].school_name%>" name="schoolName"/>
                       <%=data[i].school_name%>
                     </td>
                     <td>
+                         <input type="hidden" value="<%=data[i].type%>" name="type"/>
                       <%=data[i].type%>
                     </td>
                     <td>
+                         <input type="hidden" value="<%=data[i].size%>" name="size"/>
                       <%=data[i].size%>
                     </td>
                     <td>
+                         <input type="hidden" value="<%=data[i].status%>" name="status"/>
                       <%=data[i].status%>
                     </td>
                     <td>
+                         <input type="hidden" value=<%=data[i].count%> name="quantity"/>
                       <%=data[i].count%>
                     </td>
                     <td>
+                         <input type="hidden" value="<%=data[i].date%>" name="date"/>
                       <%=data[i].date.toString().substring(0,15)%>
                     </td>
                     <td>
-                      <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                        <% let update_id=`update_${i}` %>
-                          <form action="/available/<%=i%>/edit" method="GET">
-                            <input type="submit" value="Update" <%=id=update_id%> class="btn btn-primary"/>
+                      <!-- <div class="btn-group btn-group-toggle" data-toggle="buttons"> -->
+                        <% let details_id=`details_${i}` %>
+                        
+                            <!-- <input type="hidden" value="123xxx" name="sdadsadaas"/> -->
+
+                            <input type="submit" value="Details" id=<%=details_id%> class="btn btn-primary"/>
                           </form>
 
-                          <% let delete_id=`delete ${i}` %>
-                            <form action="/delete/<%=i%>?" _method="DELETE" method="POST">
-                              <input type="submit" value="Delete" <%=id=delete_id %> class="btn btn-secondary"/>
-                            </form>
-                      </div>
+                      
+                      <!-- </div> -->
                     </td>
                   </tr>
                   <% }; %>
