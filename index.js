@@ -24,9 +24,10 @@ console.log(theSalt);
 const app = express();
 app.use(express.static('public'));
 // Configure Express to parse request body data into request.body
-app.use(express.urlencoded({ extended: false }));
+// app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 // Override POST requests with query param ?_method=PUT to be PUT requests
 app.use(methodOverride('_method'));
 // folder to hold photos of users
@@ -199,7 +200,7 @@ app.get('/logout', (request, response) => {
   response.clearCookie('userID');
   response.clearCookie('userEmail');
   response.clearCookie('loggedIn');
-  response.redirect('/signup');
+  response.redirect('/');
 });
 // school_id, school_name, schools.school_code,
 app.get('/primary_school', (request, response) => {
@@ -697,14 +698,12 @@ app.get('/my_donations', async (request, response) => {
                         INNER JOIN uniforms
                         ON uniforms.id=inventory.uniform_id
                         WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status, date
-                        ORDER BY school_name`;
+                        GROUP BY school_name, type, size , status, date`;
 
     // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
 
     const results = await pool.query(donatQuery);
     const data = results.rows;
-    console.log('asdasdas', data);
     data.email = userEmail;
     console.log(data);
     response.render('showMyDonations', { data });
@@ -717,32 +716,40 @@ app.get('/my_donations', async (request, response) => {
   }
 });
 
-app.get('/available/:setId/edit', async (request, response) => {
-  // response.cookie(``)
-  // const findInventId = `SELECT inventory.id WHERE
-  //                     `
-  
+app.post('/details/:setId/edit', async (request, response) => {
+  const {
+    schoolName, type, size, status, quantity, date,
+  } = request.body;
   const { userEmail, userID, loggedIn } = request.cookies;
   const { setId } = request.params;
+  const data = {};
+  data.itemsSchool = schoolName;
+  data.uniformType = type;
+  const formatDate = date.toString().substring(4, 15);
   try {
-    const sqlQuery = `SELECT school_name, 
-                               type,
-                               COUNT(inventory.school_id), size, status, DATE(created_on)
-                        FROM schools
-                        INNER JOIN inventory
-                        ON schools.school_id = inventory.school_id
-                        INNER JOIN uniforms
-                        ON uniforms.id=inventory.uniform_id
-                        WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status, date
-                        ORDER BY school_name`;
-    const result = await pool.query(sqlQuery);
+    const findSchoolIdQuery = `SELECT school_id 
+                              FROM schools 
+                              WHERE school_name LIKE '${schoolName}%' `;
+    const aSchool = await pool.query(findSchoolIdQuery);
+    const theSchool = aSchool.rows[0];
 
-    // if (status_uni === 'available') {
-    // const data = result.rows[parseInt(setId)];
-    const data = {};
-    data.item = result.rows[parseInt(setId)];
+    const findUnifIdQuery = `SELECT id 
+                              FROM uniforms
+                              WHERE type = '${type}' `;
+    const aUniform = await pool.query(findUnifIdQuery);
+    const theUniform = aUniform.rows[0];
 
+    const findItemQuery = `SELECT id, donor_id, school_id, uniform_id, size, DATE(created_on), status FROM inventory 
+                           WHERE donor_id = ${userID}
+                           AND school_id = ${theSchool.school_id}      
+                           AND uniform_id = ${theUniform.id}
+                           AND size = '${size}'
+                           AND status = '${status}'`;
+    //  AND date LIKE '${formatDate}%'`;
+
+    const findItems = await pool.query(findItemQuery);
+    const itemsFound = findItems.rows;
+    data.item = itemsFound;
     const schoolQuery = 'SELECT * FROM schools';
     const schoolResult = await pool.query(schoolQuery);
     data.schools = schoolResult.rows;
