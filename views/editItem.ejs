@@ -15,14 +15,16 @@
   <%- include('header') -%>
     <%=data.message%>
 
+
+      <!-- <form action="/available/:item_id/:method" method="POST" class=".needs-validation"> -->
       <form action="/available/:setId/edit" method="POST" class=".needs-validation">
 
         <%data.item.forEach((item)=> {%>
-
           <div class="container center">
             <div class="row shadow rounded center"
               style="padding-bottom: 30px; padding-top: 30px; margin: 50px; background-color: whitesmoke">
 
+              <input type="hidden" value="<%=item.id%>" name="inventory_id" />
 
               <div class="col-sm-4">
                 <label for="school" class="form-label ">
@@ -70,18 +72,24 @@
               </div>
 
 
-              <div class="col-sm-1">
-                <button type="submit" class="btn btn-warning">Update</button>
-          
-                <button type="submit" class="btn btn-secondary">Remove</button>
+
+              <div class="col-sm-1 ">
+                <% let update_id=`update_${data.item.id}` %>
+                  <input type="submit" value="Update" <%=id=update_id %> class="btn btn-warning"/>
               </div>
-           
-            </div>
-
-          </div>
-          <%})%>
-
       </form>
+
+
+      <% let delete_id=`delete_${data.item.id}` %>
+        <form action="/available/<%=data.item.id%>/delete?_method=DELETE" method="POST">
+          <input type="submit" value="Delete" <%=id=delete_id %> class="btn btn-secondary"/>
+        </form>
+
+        </div>
+        </div>
+        <%})%>
+
+
 
 </body>
 
