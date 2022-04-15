@@ -9,10 +9,15 @@ import sgMail from '@sendgrid/mail';
 
 import {
   pool,
-  dynamicAscSort, dynamicDescSort, sortDonations, sortRequests,
+  dynamicAscSort,
+  dynamicDescSort,
+  sortDonations,
+  sortRequests,
 } from './sorts.js';
 import {
-  updateMembership, getSchoolsList, singleFileUpload,
+  updateMembership,
+  getSchoolsList,
+  singleFileUpload,
 } from './helper_functions.js';
 
 const envFilePath = 'uniforms.env';
@@ -766,54 +771,88 @@ app.post('/details/:setId/edit', async (request, response) => {
   }
 });
 
-app.put('/available/:setId/edit', async (request, response) => {
+app.post('/change', async (request, response) => {
+  console.log('yyyyyy');
   const {
-    school, type, size, quantity,
+    inventoryId, school_id, uniform_id, size, op,
   } = request.body;
-  const { userEmail, userID, loggedIn } = request.cookies;
-  // const findSchoolId = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
-  // const schoolResults = await pool.query(findSchoolId)
-  // const theSchool = schoolResults.rows[0]
+  console.log(op, inventoryId, school_id, uniform_id, size);
+  const sqls = [];
+  if (op === 'Delete') {
+    console.log('delete');
+    for (let i = 0; i < inventoryId.length; i += 1) {
+      const deleteQuery = `DELETE FROM inventory
+                         WHERE id = ${inventoryId[i]}`;
 
-  const updateInventoryQuery = `UPDATE inventory 
-                        SET ..
-                        WHERE donor_id = ${userID} RETURNING *`;
-  await pool.query(updateQuery);
+      sqls.push(pool.query(deleteQuery));
+    }
+    await Promise.all(sqls);
+    // response.redirect('/my_donations');
+  } else if (op === 'Update') {
+    console.log('uppdate');
+    for (let j = 0; j < inventoryId.length; j += 1) {
+      const updateInventoryQuery = `UPDATE inventory
+                                    SET school_id = ${school_id[j]},
+                                        uniform_id = ${uniform_id[j]}
+                                        size = '${size[j]}'
+                                    WHERE id = ${inventoryId[j]}`;
+
+      sqls.push(pool.query(updateInventoryQuery));
+    }
+    await Promise.all(sqls);
+    // response.redirect('/my_donations');
+  } else {
+    console.log('nothing yet');
+  }
+
+  // response.send('ok');
+  // const { item_id } = request.params;
+  // const { userEmail, userID, loggedIn } = request.cookies;
+
+  // console.log(inventory_id, school_id, uniform_id, size);
+
+  // const updateInventoryQuery = `UPDATE inventory
+  //                               SET school_id = ${school_id},
+  //                                   uniform_id = ${uniform_id}
+  //                                   size = '${size}'
+  //                               WHERE id = item_id`;
+  // await pool.query(updateInventoryQuery);
   response.redirect('/my_donations');
 });
 
-app.delete('/delete/:setId', async (request, response) => {
-  const deleteQuery = `DELETE FROM inventory
-                      WHERE `;
-  await pool.query(deleteQuery);
-  response.redirect('/my_donations');
-});
+app.post('/reserved_collected', async (request, response) => {
+  console.log('inside now');
 
-app.put('/reserved/:setId/edit', async (request, response) => {
+  const {
+    schoolName, type, size, status, quantity, date,
+  } = request.body;
+  console.log(schoolName, type, size, status, quantity, date);
   const { userEmail, userID, loggedIn } = request.cookies;
-  const { setId } = request.params;
+  const formatDate = date.toString().substring(4, 15);
   try {
-    const sqlQuery = `SELECT school_name, 
-                               type,
-                               COUNT(inventory.school_id), size, status, DATE(created_on)
-                        FROM schools
-                        INNER JOIN inventory
-                        ON schools.school_id = inventory.school_id
-                        INNER JOIN uniforms
-                        ON uniforms.id=inventory.uniform_id
-                        WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status, date
-                        ORDER BY school_name`;
-    const result = await pool.query(sqlQuery);
+    const findSchoolIdQuery = `SELECT school_id 
+                              FROM schools 
+                              WHERE school_name = '${schoolName}' `;
+    const aSchool = await pool.query(findSchoolIdQuery);
+    const theSchool = aSchool.rows[0];
+    console.log(`school, ${theSchool}`);
 
-    // if (status_uni === 'available') {
-    // const data = result.rows[parseInt(setId)];
-    const data = {};
-    data.item = result.rows[parseInt(setId)];
+    const findUnifIdQuery = `SELECT id 
+                              FROM uniforms
+                              WHERE type = '${type}' `;
+    const aUniform = await pool.query(findUnifIdQuery);
+    const theUniform = aUniform.rows[0];
+    console.log(`theUniform, ${theUniform}`);
+    const updateItemQuery = `UPDATE inventory 
+                           SET status = 'collected' 
+                           WHERE donor_id = ${userID}
+                           AND school_id = ${theSchool.school_id}      
+                           AND uniform_id = ${theUniform.id}
+                           AND size = '${size}'`;
+    //  AND date LIKE '${formatDate}%'`;
 
+    await pool.query(updateItemQuery);
     response.redirect('/my_donations');
-
-    // response.send(data);
   } catch (err) {
     console.error(err.message);
     response.send('Cannot connect');

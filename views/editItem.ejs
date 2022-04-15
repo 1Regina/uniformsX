@@ -15,10 +15,10 @@
   <%- include('header') -%>
     <%=data.message%>
 
-      <%data.item.forEach((item)=> {%>
+    
         <!-- <form action="/available/:item_id/:method" method="POST" class=".needs-validation"> -->
-        <form action="/available/<%=item.id%>" method="POST" class=".needs-validation">
-
+        <form action="/change" method="POST" class=".needs-validation">
+  <%data.item.forEach((item)=> {%>
           <div class="container center">
             <div class="row shadow rounded center"
               style="padding-bottom: 30px; padding-top: 30px; margin: 50px; background-color: whitesmoke">
@@ -32,8 +32,8 @@
                     <%=data.itemsSchool%>
                   </option>
                   <% data.schools.forEach((school)=> {%>
-                    <option value="<%=school.id%>">
-                      <%= school.school_name %>
+                    <option value="<%=school.school_id %>">
+                      <%=school.school_name %>
                     </option>
                     <% }); %>
                 </select>
@@ -68,15 +68,21 @@
                 </input>
               </div>
 
-              <div class="col-sm-1 ">
+              <!-- <div class="col-sm-1"> -->
                 <% let update_id=`update_${item.id}` %>
-                  <input type="hidden" value="<%=item.id%>" name="inventory_id" />
-                  <input type="submit" value="Update" name="op" class="btn btn-warning"/>
-                  <input type="submit" value="Delete" name="op" class="btn btn-secondary"/>
-              </div>
+                  <input type="hidden" value="<%=item.id%>" name="inventoryId" />
+             
+              <!-- </div> -->
             </div>
           </div>
+
+           <%})%>
+            <div class="d-flex justify-content-center">
+               <input type="submit" value="Update" name="op" class="btn btn-warning"/>
+               <input type="submit" value="Delete" name="op" class="btn btn-secondary"/>
+            </div>      
         </form>
-      <%})%>
+     
+
 </body>
 </html>
