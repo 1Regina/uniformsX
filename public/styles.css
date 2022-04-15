@@ -72,3 +72,7 @@ table {
   border: 10px solid #06a3a3;
 }
 
+.circular--some {
+  border-radius: 10%;
+
+}
