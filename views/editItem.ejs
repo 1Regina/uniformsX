@@ -15,10 +15,10 @@
   <%- include('header') -%>
     <%=data.message%>
 
-    
-        <!-- <form action="/available/:item_id/:method" method="POST" class=".needs-validation"> -->
-        <form action="/change" method="POST" class=".needs-validation">
-  <%data.item.forEach((item)=> {%>
+
+      <!-- <form action="/available/:item_id/:method" method="POST" class=".needs-validation"> -->
+      <form action="/change" method="POST" class=".needs-validation">
+        <%data.item.forEach((item)=> {%>
           <div class="container center">
             <div class="row shadow rounded center"
               style="padding-bottom: 30px; padding-top: 30px; margin: 50px; background-color: whitesmoke">
@@ -28,14 +28,17 @@
                   <h5>School:</h5>
                 </label>
                 <select class="custom-select" id="school" name="school_id" required>
-                  <option selected>
-                    <%=data.itemsSchool%>
-                  </option>
                   <% data.schools.forEach((school)=> {%>
-                    <option value="<%=school.school_id %>">
-                      <%=school.school_name %>
-                    </option>
-                    <% }); %>
+                    <%if (school.school_name===data.itemsSchool ){ %>
+                      <option selected value="<%=school.school_id %>">
+                        <%=school.school_name %>
+                      </option>
+                      <%}else{%>
+                        <option value="<%=school.school_id %>">
+                          <%=school.school_name %>
+                        </option>
+                        <%}%>
+                          <% }); %>
                 </select>
               </div>
 
@@ -45,14 +48,17 @@
                   <h5>Type:</h5>
                 </label>
                 <select class="custom-select" id="type" name="uniform_id" required>
-                  <option selected>
-                    <%=data.uniformType%>
-                  </option>
                   <% data.uniforms.forEach((catalog)=> {%>
-                    <option value="<%=catalog.id %>">
-                      <%= catalog.type %>
-                    </option>
-                    <% }); %>
+                    <%if (catalog.type===data.uniformType ){ %>
+                      <option selected value="<%=catalog.id %>">
+                        <%=catalog.type %>
+                      </option>
+                      <%}else{%>
+                        <option value="<%=catalog.id %>">
+                          <%= catalog.type %>
+                        </option>
+                        <%}%>
+                          <% }); %>
                 </select>
               </div>
 
@@ -69,20 +75,21 @@
               </div>
 
               <!-- <div class="col-sm-1"> -->
-                <% let update_id=`update_${item.id}` %>
-                  <input type="hidden" value="<%=item.id%>" name="inventoryId" />
-             
-              <!-- </div> -->
+              <% let update_id=`update_${item.id}` %>
+                <input type="hidden" value="<%=item.id%>" name="inventoryId" />
+
+                <!-- </div> -->
             </div>
           </div>
 
-           <%})%>
+          <%})%>
             <div class="d-flex justify-content-center">
-               <input type="submit" value="Update" name="op" class="btn btn-warning"/>
-               <input type="submit" value="Delete" name="op" class="btn btn-secondary"/>
-            </div>      
-        </form>
-     
+              <input type="submit" value="Update" name="op" class="btn btn-warning" />
+              <input type="submit" value="Delete" name="op" class="btn btn-secondary" />
+            </div>
+      </form>
+
 
 </body>
+
 </html>

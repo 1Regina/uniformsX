@@ -790,13 +790,12 @@ app.post('/change', async (request, response) => {
     // response.redirect('/my_donations');
   } else if (op === 'Update') {
     console.log('uppdate');
-    for (let j = 0; j < inventoryId.length; j += 1) {
+    for (let i = 0; i < inventoryId.length; i += 1) {
       const updateInventoryQuery = `UPDATE inventory
-                                    SET school_id = ${school_id[j]},
-                                        uniform_id = ${uniform_id[j]}
-                                        size = '${size[j]}'
-                                    WHERE id = ${inventoryId[j]}`;
-
+                                      SET school_id = ${school_id[i]},
+                                          uniform_id = ${uniform_id[i]},
+                                          size = ${size[i]}
+                                      WHERE id = ${inventoryId[i]}`;
       sqls.push(pool.query(updateInventoryQuery));
     }
     await Promise.all(sqls);
