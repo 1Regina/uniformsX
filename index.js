@@ -374,7 +374,158 @@ app.get('/myyy_donations', async (request, response) => {
   }
 });
 
+app.get('/my_donations', async (request, response) => {
+  if (request.cookies.loggedIn === 'true') {
+    console.log('aaaaaaaaa');
+    const { userEmail, userID, loggedIn } = request.cookies;
+    const donatQuery = `SELECT school_name, 
+                               type,
+                               COUNT(inventory.school_id), size, status, DATE(created_on)
+                        FROM schools
+                        INNER JOIN inventory
+                        ON schools.school_id = inventory.school_id
+                        INNER JOIN uniforms
+                        ON uniforms.id=inventory.uniform_id
+                        WHERE donor_id = ${userID}
+                        GROUP BY school_name, type, size , status, date`;
+    const results = await pool.query(donatQuery);
+    const data = results.rows;
+    data.email = userEmail;
+    console.log(data);
+    response.render('showMyDonations', { data });
+  } else {
+    const data = {};
+    // data.message = 'Please sign in to see what you have donated';
+    // response.render('null', { data });
+    data.isLogin = false;
+    response.render('loginForm', { data });
+  }
+});
+
 app.get('/my_donations-sortby/:parameter/:sortHow', sortDonations);
+
+app.post('/details/:setId/edit', async (request, response) => {
+  const {
+    schoolName, type, size, status, quantity, date,
+  } = request.body;
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { setId } = request.params;
+  const data = {};
+  data.itemsSchool = schoolName;
+  data.uniformType = type;
+  const formatDate = date.toString().substring(4, 15);
+  try {
+    const findSchoolIdQuery = `SELECT school_id 
+                              FROM schools 
+                              WHERE school_name LIKE '${schoolName}%' `;
+    const aSchool = await pool.query(findSchoolIdQuery);
+    const theSchool = aSchool.rows[0];
+
+    const findUnifIdQuery = `SELECT id 
+                              FROM uniforms
+                              WHERE type = '${type}' `;
+    const aUniform = await pool.query(findUnifIdQuery);
+    const theUniform = aUniform.rows[0];
+
+    const findItemQuery = `SELECT id, donor_id, school_id, uniform_id, size, DATE(created_on), status FROM inventory 
+                           WHERE donor_id = ${userID}
+                           AND school_id = ${theSchool.school_id}      
+                           AND uniform_id = ${theUniform.id}
+                           AND size = '${size}'
+                           AND status = '${status}'`;
+    //  AND date LIKE '${formatDate}%'`;
+
+    const findItems = await pool.query(findItemQuery);
+    const itemsFound = findItems.rows;
+    data.item = itemsFound;
+    const schoolQuery = 'SELECT * FROM schools';
+    const schoolResult = await pool.query(schoolQuery);
+    data.schools = schoolResult.rows;
+    const uniformQuery = 'SELECT * FROM uniforms';
+    const uniformResult = await pool.query(uniformQuery);
+    data.uniforms = uniformResult.rows;
+    console.log(data);
+    response.render('editItem', { data });
+
+    // response.send(data);
+  } catch (err) {
+    console.error(err.message);
+    response.send('Cannot connect');
+  }
+});
+
+app.post('/change', async (request, response) => {
+  const {
+    inventoryId, school_id, uniform_id, size, op,
+  } = request.body;
+  console.log(op, inventoryId, school_id, uniform_id, size);
+  const sqls = [];
+  if (op === 'Delete') {
+    console.log('delete');
+    for (let i = 0; i < inventoryId.length; i += 1) {
+      const deleteQuery = `DELETE FROM inventory
+                         WHERE id = ${inventoryId[i]}`;
+
+      sqls.push(pool.query(deleteQuery));
+    }
+    await Promise.all(sqls);
+    // response.redirect('/my_donations');
+  } else if (op === 'Update') {
+    console.log('uppdate');
+    for (let i = 0; i < inventoryId.length; i += 1) {
+      const updateInventoryQuery = `UPDATE inventory
+                                      SET school_id = ${school_id[i]},
+                                          uniform_id = ${uniform_id[i]},
+                                          size = ${size[i]}
+                                      WHERE id = ${inventoryId[i]}`;
+      sqls.push(pool.query(updateInventoryQuery));
+    }
+    await Promise.all(sqls);
+    // response.redirect('/my_donations');
+  } else {
+    console.log('nothing yet');
+  }
+  response.redirect('/my_donations');
+});
+
+app.post('/reserved_collected', async (request, response) => {
+  console.log('inside now');
+
+  const {
+    schoolName, type, size, status, quantity, date,
+  } = request.body;
+  console.log(schoolName, type, size, status, quantity, date);
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const formatDate = date.toString().substring(4, 15);
+  try {
+    const findSchoolIdQuery = `SELECT school_id 
+                              FROM schools 
+                              WHERE school_name = '${schoolName}' `;
+    const aSchool = await pool.query(findSchoolIdQuery);
+    const theSchool = aSchool.rows[0];
+    console.log(`school, ${theSchool}`);
+
+    const findUnifIdQuery = `SELECT id 
+                              FROM uniforms
+                              WHERE type = '${type}' `;
+    const aUniform = await pool.query(findUnifIdQuery);
+    const theUniform = aUniform.rows[0];
+    console.log(`theUniform, ${theUniform}`);
+    const updateItemQuery = `UPDATE inventory 
+                           SET status = 'collected' 
+                           WHERE donor_id = ${userID}
+                           AND school_id = ${theSchool.school_id}      
+                           AND uniform_id = ${theUniform.id}
+                           AND size = '${size}'`;
+    //  AND date LIKE '${formatDate}%'`;
+
+    await pool.query(updateItemQuery);
+    response.redirect('/my_donations');
+  } catch (err) {
+    console.error(err.message);
+    response.send('Cannot connect');
+  }
+});
 
 app.get('/request', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
@@ -687,174 +838,6 @@ app.get('/test', async (request, response) => {
     response.render('null', { data });
   } catch (err) {
     console.error(err.message); // wont break
-  }
-});
-
-app.get('/my_donations', async (request, response) => {
-  if (request.cookies.loggedIn === 'true') {
-    console.log('aaaaaaaaa');
-    const { userEmail, userID, loggedIn } = request.cookies;
-    const donatQuery = `SELECT school_name, 
-                               type,
-                               COUNT(inventory.school_id), size, status, DATE(created_on)
-                        FROM schools
-                        INNER JOIN inventory
-                        ON schools.school_id = inventory.school_id
-                        INNER JOIN uniforms
-                        ON uniforms.id=inventory.uniform_id
-                        WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status, date`;
-
-    // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
-
-    const results = await pool.query(donatQuery);
-    const data = results.rows;
-    data.email = userEmail;
-    console.log(data);
-    response.render('showMyDonations', { data });
-  } else {
-    const data = {};
-    // data.message = 'Please sign in to see what you have donated';
-    // response.render('null', { data });
-    data.isLogin = false;
-    response.render('loginForm', { data });
-  }
-});
-
-app.post('/details/:setId/edit', async (request, response) => {
-  const {
-    schoolName, type, size, status, quantity, date,
-  } = request.body;
-  const { userEmail, userID, loggedIn } = request.cookies;
-  const { setId } = request.params;
-  const data = {};
-  data.itemsSchool = schoolName;
-  data.uniformType = type;
-  const formatDate = date.toString().substring(4, 15);
-  try {
-    const findSchoolIdQuery = `SELECT school_id 
-                              FROM schools 
-                              WHERE school_name LIKE '${schoolName}%' `;
-    const aSchool = await pool.query(findSchoolIdQuery);
-    const theSchool = aSchool.rows[0];
-
-    const findUnifIdQuery = `SELECT id 
-                              FROM uniforms
-                              WHERE type = '${type}' `;
-    const aUniform = await pool.query(findUnifIdQuery);
-    const theUniform = aUniform.rows[0];
-
-    const findItemQuery = `SELECT id, donor_id, school_id, uniform_id, size, DATE(created_on), status FROM inventory 
-                           WHERE donor_id = ${userID}
-                           AND school_id = ${theSchool.school_id}      
-                           AND uniform_id = ${theUniform.id}
-                           AND size = '${size}'
-                           AND status = '${status}'`;
-    //  AND date LIKE '${formatDate}%'`;
-
-    const findItems = await pool.query(findItemQuery);
-    const itemsFound = findItems.rows;
-    data.item = itemsFound;
-    const schoolQuery = 'SELECT * FROM schools';
-    const schoolResult = await pool.query(schoolQuery);
-    data.schools = schoolResult.rows;
-    const uniformQuery = 'SELECT * FROM uniforms';
-    const uniformResult = await pool.query(uniformQuery);
-    data.uniforms = uniformResult.rows;
-    console.log(data);
-    response.render('editItem', { data });
-
-    // response.send(data);
-  } catch (err) {
-    console.error(err.message);
-    response.send('Cannot connect');
-  }
-});
-
-app.post('/change', async (request, response) => {
-  console.log('yyyyyy');
-  const {
-    inventoryId, school_id, uniform_id, size, op,
-  } = request.body;
-  console.log(op, inventoryId, school_id, uniform_id, size);
-  const sqls = [];
-  if (op === 'Delete') {
-    console.log('delete');
-    for (let i = 0; i < inventoryId.length; i += 1) {
-      const deleteQuery = `DELETE FROM inventory
-                         WHERE id = ${inventoryId[i]}`;
-
-      sqls.push(pool.query(deleteQuery));
-    }
-    await Promise.all(sqls);
-    // response.redirect('/my_donations');
-  } else if (op === 'Update') {
-    console.log('uppdate');
-    for (let i = 0; i < inventoryId.length; i += 1) {
-      const updateInventoryQuery = `UPDATE inventory
-                                      SET school_id = ${school_id[i]},
-                                          uniform_id = ${uniform_id[i]},
-                                          size = ${size[i]}
-                                      WHERE id = ${inventoryId[i]}`;
-      sqls.push(pool.query(updateInventoryQuery));
-    }
-    await Promise.all(sqls);
-    // response.redirect('/my_donations');
-  } else {
-    console.log('nothing yet');
-  }
-
-  // response.send('ok');
-  // const { item_id } = request.params;
-  // const { userEmail, userID, loggedIn } = request.cookies;
-
-  // console.log(inventory_id, school_id, uniform_id, size);
-
-  // const updateInventoryQuery = `UPDATE inventory
-  //                               SET school_id = ${school_id},
-  //                                   uniform_id = ${uniform_id}
-  //                                   size = '${size}'
-  //                               WHERE id = item_id`;
-  // await pool.query(updateInventoryQuery);
-  response.redirect('/my_donations');
-});
-
-app.post('/reserved_collected', async (request, response) => {
-  console.log('inside now');
-
-  const {
-    schoolName, type, size, status, quantity, date,
-  } = request.body;
-  console.log(schoolName, type, size, status, quantity, date);
-  const { userEmail, userID, loggedIn } = request.cookies;
-  const formatDate = date.toString().substring(4, 15);
-  try {
-    const findSchoolIdQuery = `SELECT school_id 
-                              FROM schools 
-                              WHERE school_name = '${schoolName}' `;
-    const aSchool = await pool.query(findSchoolIdQuery);
-    const theSchool = aSchool.rows[0];
-    console.log(`school, ${theSchool}`);
-
-    const findUnifIdQuery = `SELECT id 
-                              FROM uniforms
-                              WHERE type = '${type}' `;
-    const aUniform = await pool.query(findUnifIdQuery);
-    const theUniform = aUniform.rows[0];
-    console.log(`theUniform, ${theUniform}`);
-    const updateItemQuery = `UPDATE inventory 
-                           SET status = 'collected' 
-                           WHERE donor_id = ${userID}
-                           AND school_id = ${theSchool.school_id}      
-                           AND uniform_id = ${theUniform.id}
-                           AND size = '${size}'`;
-    //  AND date LIKE '${formatDate}%'`;
-
-    await pool.query(updateItemQuery);
-    response.redirect('/my_donations');
-  } catch (err) {
-    console.error(err.message);
-    response.send('Cannot connect');
   }
 });
 // set port to listen
