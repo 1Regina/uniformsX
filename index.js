@@ -81,9 +81,20 @@ app.post('/signup', async (request, response) => {
   // if (!updRv) return "ok";
   await updateMembership(member, id);
   // response.send('sign success');
+
   const data = {};
   data.message = 'You have signed up successfully and can donate or request uniforms';
-  response.render('null', { data });
+  const d = new Date();
+  d.setTime(d.getTime() + 1 * 24 * 60 * 60 * 1000);
+  const expires = d.toUTCString();
+  response.setHeader('Set-Cookie', [
+    `userEmail=${email}; expires=${expires}; path=/`,
+  ]);
+  response.cookie('userID', `${id}`);
+  response.cookie('loggedIn', true);
+
+  return response.redirect('/my_profile');
+  // response.render('null', { data });
 });
 
 app.get('/add_photo', (request, response) => {
@@ -249,7 +260,7 @@ app.get('/secondary_school', (request, response) => {
   });
 });
 
-app.get('/:school/uniform', (request, response) => {
+app.get('/:school/uniform0', (request, response) => {
   const theSchool = request.params.school;
   console.log(theSchool);
   const sqlQuery = `SELECT school_name, school_code,
@@ -337,7 +348,7 @@ app.post('/donate', async (request, response) => {
       sqls.push(pool.query(insertQuery));
     }
     await Promise.all(sqls);
-    response.send('donating');
+    response.redirect('/my_donations');
   } catch (err) {
     console.error(err.message); // wont break
   }
@@ -451,9 +462,13 @@ app.post('/change', async (request, response) => {
                                           uniform_id = ${uniform_id[i]},
                                           size = ${size[i]}
                                       WHERE id = ${inventoryId[i]}`;
+      console.log(updateInventoryQuery);
       sqls.push(pool.query(updateInventoryQuery));
     }
-    await Promise.all(sqls);
+    try { await Promise.all(sqls); }
+    catch (err) {
+      console.error(err.message);
+    }
     // response.redirect('/my_donations');
   } else {
     console.log('nothing yet');
@@ -689,9 +704,9 @@ app.get('/my_requests', async (request, response) => {
 
 app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
 
-app.get('/request_selected', async (request, response) => {
-  // const theSchool = request.params.school;
-  const theSchool = 'Ai Tong School';
+app.get('/:school/uniform', async (request, response) => {
+  const theSchool = request.params.school;
+  // const theSchool = 'Ai Tong School';
   console.log(theSchool);
   const sqlQuery = `SELECT school_name, school_code,
                            uniforms.id AS uniforms_id, type,
@@ -750,13 +765,34 @@ app.post('/request_selected', async (request, response) => {
     response.redirect('/my_requests');
     // find and alert Donor
     const lastReq = await findDonorDetails();
-    sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.count, lastReq.type);
-    response.render('null', { data });
+    sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.size, lastReq.type);
+    // response.render('null', { data });
   // } else {
   //   data.message = 'Only members can request';
   //   response.render('null', { data });
+  } else if (typeof requestInfo === 'object') {
+    for (let i = 0; i < requestInfo.length; i += 1) {
+      const info = requestInfo[i].split(', ');
+      const donorID = info[0];
+      const schoolID = info[1];
+      const uniformID = info[2];
+      const size = info[3];
+      const quantity = info[4];
+      console.log(info);
+
+      // eslint-disable-next-line max-len
+      const doUpdateAndInsert = await updateAndInsert(donorID, schoolID, uniformID, size, userID, quantity);
+      console.log(doUpdateAndInsert);
+      const lastReq = await findDonorDetails();
+      sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.size, lastReq.type);
+    } response.redirect('/my_requests');
+  } else {
+    data.isLogin = false;
+    console.log('asda');
+    response.render('loginForm', { data });
   }
 });
+
 app.get('/test', async (request, response) => {
   const result = await findDonorDetails();
   console.log(findDonorDetails);
