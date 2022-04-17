@@ -59,31 +59,34 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 const singleFileUpload = upload.single('photo');
 
-
-const updateAndInsert = async (quantity, donorID, schoolID, uniformID, size, userID) => {
+const updateAndInsert = async (donorID, schoolID, uniformID, size, userID, quantity) => {
   const updateSQLs = [];
   const requestIds = [];
-  for (let i = 0; i < quantity; i += 1) {
-    const updateQuery = `UPDATE inventory SET status = 'reserved' 
+  try {
+    for (let i = 0; i < quantity; i += 1) {
+      const updateQuery = `UPDATE inventory SET status = 'reserved' 
                              WHERE donor_id = ${donorID}
                              AND school_id = ${schoolID}
                              AND uniform_id = ${uniformID}
                              AND size = '${size}' RETURNING id`;
-    updateSQLs.push(pool.query(updateQuery));
-  }
-  const selectedInvIDs = await Promise.all(updateSQLs);
+      updateSQLs.push(pool.query(updateQuery));
+    }
+    const selectedInvIDs = await Promise.all(updateSQLs);
 
-  const insertSQLs = [];
-  const idObjArray = selectedInvIDs[0].rows;
+    const insertSQLs = [];
+    const idObjArray = selectedInvIDs[0].rows;
 
-  for (let j = 0; j < idObjArray.length; j += 1) {
-    const itemID = idObjArray[j].id;
-    requestIds.push(itemID);
-    const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${itemID}) RETURNING id`;
-    insertSQLs.push(pool.query(requestTBQuery));
+    for (let j = 0; j < idObjArray.length; j += 1) {
+      const itemID = idObjArray[j].id;
+      requestIds.push(itemID);
+      const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${itemID}) RETURNING id`;
+      insertSQLs.push(pool.query(requestTBQuery));
+    }
+    console.log(insertSQLs);
+    await Promise.all(insertSQLs);
+  } catch (err) {
+    console.error(err.message); // wont break
   }
-  console.log(insertSQLs);
-  await Promise.all(insertSQLs);
 };
 // response.redirect('/my_requests');
 // find and alert Donor
@@ -91,17 +94,17 @@ const findDonorDetails = async () => {
   try {
     const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
                                school_name, type, size
-                        FROM users
-                        INNER JOIN inventory
-                        ON users.id = donor_id
-                        INNER JOIN donation_request
-                        ON inventory.id=inventory_id
-                        INNER JOIN schools
-                        ON schools.school_id = inventory.school_id
-                        INNER JOIN uniforms
-                        ON uniforms.id = uniform_id
-                        WHERE reserved_date::date = now()::date
-                        GROUP BY email, name, school_name, type, size`;
+                            FROM users
+                            INNER JOIN inventory
+                            ON users.id = donor_id
+                            INNER JOIN donation_request
+                            ON inventory.id=inventory_id
+                            INNER JOIN schools
+                            ON schools.school_id = inventory.school_id
+                            INNER JOIN uniforms
+                            ON uniforms.id = uniform_id
+                            WHERE reserved_date::date = now()::date
+                            GROUP BY email, name, school_name, type, size`;
     const resultDonor = await pool.query(findDonorQuery);
     const num = resultDonor.rows.length;
     const lastReq = resultDonor.rows[num - 1];

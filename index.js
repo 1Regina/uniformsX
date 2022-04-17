@@ -18,6 +18,9 @@ import {
   updateMembership,
   getSchoolsList,
   singleFileUpload,
+  updateAndInsert,
+  findDonorDetails,
+  sendAnEmail,
 } from './helper_functions.js';
 
 const envFilePath = 'uniforms.env';
@@ -344,36 +347,6 @@ app.post('/donate', async (request, response) => {
   // }
 });
 
-app.get('/myyy_donations', async (request, response) => {
-  if (request.cookies.loggedIn === 'true') {
-    console.log('aaaaaaaaa');
-    const { userEmail, userID, loggedIn } = request.cookies;
-    const donatQuery = `SELECT school_name, 
-                               type,
-                               COUNT(inventory.school_id), size, status, DATE(created_on)
-                        FROM schools
-                        INNER JOIN inventory
-                        ON schools.school_id = inventory.school_id
-                        INNER JOIN uniforms
-                        ON uniforms.id=inventory.uniform_id
-                        WHERE donor_id = ${userID}
-                        GROUP BY school_name, type, size , status, date`;
-
-    // const donatQuery = `SELECT COUNT(*) FROM inventory WHERE donor_id = ${userID}`;
-
-    const results = await pool.query(donatQuery);
-    const data = results.rows;
-    console.log(data);
-    response.render('showMyDonations', { data });
-  } else {
-    const data = {};
-    // data.message = 'Please sign in to see what you have donated';
-    // response.render('null', { data });
-    data.isLogin = false;
-    response.render('loginForm', { data });
-  }
-});
-
 app.get('/my_donations', async (request, response) => {
   if (request.cookies.loggedIn === 'true') {
     console.log('aaaaaaaaa');
@@ -616,7 +589,7 @@ app.post('/request', async (request, response) => {
     // });
     const insertSQLs = [];
     const idObjArray = rvs[0].rows;
-    console.log('11111111111', idObjArray);
+    console.log('what is this idObjArray', idObjArray);
     for (let j = 0; j < idObjArray.length; j += 1) {
       const ind = idObjArray[j].id;
       requestIds.push(ind);
@@ -718,7 +691,7 @@ app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
 
 app.get('/request_selected', async (request, response) => {
   // const theSchool = request.params.school;
-  const theSchool = 'Anglo Chinese School Junior';
+  const theSchool = 'Ai Tong School';
   console.log(theSchool);
   const sqlQuery = `SELECT school_name, school_code,
                            uniforms.id AS uniforms_id, type,
@@ -752,23 +725,42 @@ app.get('/request_selected', async (request, response) => {
 
 app.post('/request_selected', async (request, response) => {
   console.log('asdadasdadsada');
-  // const theSchool = request.params.school;
-  // const theSchool = 'Anglo Chinese School Junior';
-  const { userEmail, userID, loggedIn } = request.cookies;
-  const {
-    type, uniformID, size, quantity, donorID, schoolID,
-  } = request.body;
-  const data = {};
-  console.log(type, uniformID, size, quantity, donorID, schoolID);
-  data.type = type;
-  data.uniformID = uniformID;
-  data.size = size;
-  data.quantity = quantity;
-  data.donorID = donorID;
-  data.schoolID = schoolID;
-  console.log('data', data);
-  response.send({ data });
-});
 
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { requestInfo } = request.body;
+  // const recipient_id = userID;
+  const data = {};
+  // const info = [];
+
+  console.log('dfsdfsd', requestInfo);
+  console.log(typeof requestInfo);
+
+  if (typeof requestInfo === 'string') {
+    const info = requestInfo.split(', ');
+    const donorID = info[0];
+    const schoolID = info[1];
+    const uniformID = info[2];
+    const size = info[3];
+    const quantity = info[4];
+    console.log(info);
+
+    // eslint-disable-next-line max-len
+    const doUpdateAndInsert = await updateAndInsert(donorID, schoolID, uniformID, size, userID, quantity);
+    console.log(doUpdateAndInsert);
+    response.redirect('/my_requests');
+    // find and alert Donor
+    const lastReq = await findDonorDetails();
+    sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.count, lastReq.type);
+    response.render('null', { data });
+  // } else {
+  //   data.message = 'Only members can request';
+  //   response.render('null', { data });
+  }
+});
+app.get('/test', async (request, response) => {
+  const result = await findDonorDetails();
+  console.log(findDonorDetails);
+  response.send(result);
+});
 // set port to listen
 app.listen(port);
