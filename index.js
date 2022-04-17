@@ -716,129 +716,59 @@ app.get('/my_requests', async (request, response) => {
 
 app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
 
-app.get('/test', async (request, response) => {
-  const data = {};
-  // if (request.cookies.loggedIn === 'true') {
-  const { userEmail, userID, loggedIn } = request.cookies;
-  const { school, type, quantity } = request.body;
-  const sizing = request.body.size;
-  const size = String(sizing).replace(/ /g, '_').toUpperCase();
-
-  try {
-    const findReqQtyQuery = `SELECT COUNT (inventory_id) 
-                               FROM donation_request
-                               WHERE recipient_id = ${userID} `;
-    const findRecipTot = await pool.query(findReqQtyQuery);
-    const recipientTotal = findRecipTot.rows[0].count;
-    // if ((recipientTotal + quantity) >= 20) {
-    //   // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
-    //   data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
-    //   response.render('null', { data });
-    // }
-    const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
-    const schoolid = await pool.query(infoQuery);
-    const schoolID = schoolid.rows[0].school_id;
-    const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
-    const uniID = await pool.query(findUniId);
-    const uID = uniID.rows[0].id;
-    const findPotentialsQuery = `SELECT donor_id, COUNT(status) 
-                                   FROM inventory WHERE status = 'available' 
-                                   AND school_id = ${schoolID} 
-                                   AND uniform_id = ${uID} 
-                                   AND size = '${size}' 
-                                   GROUP BY donor_id 
-                                   HAVING COUNT(status) = ${quantity} 
-                                   ORDER BY donor_id`;
-    const findDonor = await pool.query(findPotentialsQuery);
-
-    if (findDonor.rows.length === 0) {
-      data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
-      // todo: check why alert is not working
-      // alert('you need to adjust your qty');
-      response.render('null', { data });
-    }
-    const donorFound = findDonor.rows[0].donor_id;
-    console.log(donorFound);
-
-    const sqls = [];
-    const requestIds = [];
-    for (let i = 0; i < quantity; i += 1) {
-      const updateQuery = `UPDATE inventory SET status = 'reserved' 
-                             WHERE donor_id = ${donorFound}
-                             AND school_id = ${schoolID}
-                             AND uniform_id = ${uID}
-                             AND size = '${size}' RETURNING id`;
-      sqls.push(pool.query(updateQuery));
-    }
-
-    const rvs = await Promise.all(sqls);
-
-    // rvs.forEach((rv, idx) => {
-    //   console.log(`Result: ${idx}`, rv.rows);
-    // });
-    const insertSQLs = [];
-    const idObjArray = rvs[0].rows;
-    console.log('11111111111', idObjArray);
-    for (let j = 0; j < idObjArray.length; j += 1) {
-      const ind = idObjArray[j].id;
-      requestIds.push(ind);
-      const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${ind})`;
-      insertSQLs.push(pool.query(requestTBQuery));
-    }
-    console.log(insertSQLs);
-    await Promise.all(insertSQLs);
-    // find and alert donor
-    const findDonorQuery = `SELECT email, name, COUNT(reserved_date), 
-                                 school_name, type, size
-                          FROM users 
-                          INNER JOIN inventory 
-                          ON users.id = donor_id
-                          INNER JOIN donation_request
-                          ON inventory.id=inventory_id
-                          INNER JOIN schools
-                          ON schools.school_id = inventory.school_id
-                          INNER JOIN uniforms
-                          ON uniforms.id = uniform_id
-                          WHERE reserved_date::date = now()::date
-                          GROUP BY email, name, school_name, type, size`;
-    const resultDonor = await pool.query(findDonorQuery);
-    const num = resultDonor.rows.length;
-    const lastReq = resultDonor.rows[num - 1];
-    console.log(lastReq);
-
-    response.redirect('/my_requests');
-
-    // const sgMail = require('@sendgrid/mail')();
-
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const msg = {
-      // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
-      to: [
-        {
-          email: '1reginacheong@gmail.com',
-        },
-        {
-          email: `${lastReq.email}`,
-        },
-      ],
-      from: 'regina_cheong@hotmail.com', // Change to your verified sender
-      subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
-      text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
-      html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
-    };
-    sgMail
-      .send(msg)
-      .then(() => {
-        console.log('Email sent');
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-    data.message = 'Request Successful and the donor is notified via email';
-    response.render('null', { data });
-  } catch (err) {
-    console.error(err.message); // wont break
-  }
+app.get('/request_selected', async (request, response) => {
+  // const theSchool = request.params.school;
+  const theSchool = 'Anglo Chinese School Junior';
+  console.log(theSchool);
+  const sqlQuery = `SELECT school_name, school_code,
+                           uniforms.id AS uniforms_id, type,
+                           donor_id, inventory.school_id, uniform_id, size, COUNT(status)
+                    FROM schools
+                    INNER JOIN inventory
+                    ON schools.school_id = inventory.school_id
+                    INNER JOIN uniforms
+                    ON uniforms.id = inventory.uniform_id
+                    WHERE STATUS = 'available' AND school_name='${theSchool}'
+                    GROUP BY school_name, school_code,
+                           uniforms_id, type,
+                           donor_id, inventory.school_id, uniform_id, size
+                    ORDER BY type, size`;
+  pool
+    .query(sqlQuery)
+    .then((summaryCount) => {
+      const data = summaryCount.rows;
+      if (data.length === 0) {
+        data.message = `There are no available stock for ${theSchool}`;
+        response.render('null', { data });
+      } else {
+        console.log(data);
+        response.render('showInventoryMember', { data });
+      }
+    })
+    .catch((err) => {
+      console.error(err.message); // wont break
+    });
 });
+
+app.post('/request_selected', async (request, response) => {
+  console.log('asdadasdadsada');
+  // const theSchool = request.params.school;
+  // const theSchool = 'Anglo Chinese School Junior';
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const {
+    type, uniformID, size, quantity, donorID, schoolID,
+  } = request.body;
+  const data = {};
+  console.log(type, uniformID, size, quantity, donorID, schoolID);
+  data.type = type;
+  data.uniformID = uniformID;
+  data.size = size;
+  data.quantity = quantity;
+  data.donorID = donorID;
+  data.schoolID = schoolID;
+  console.log('data', data);
+  response.send({ data });
+});
+
 // set port to listen
 app.listen(port);

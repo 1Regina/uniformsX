@@ -34,16 +34,17 @@
           </thead>
           <tbody>
 
-            <form action="/request_selected" method="POST">
-              <%for (let i=0; i< data.length; i+=1) {%>
+                   <form action="/request_selected" method="POST">
 
-                <tr>
+            <%for (let i=0; i< data.length; i+=1) {%>
+              <tr>
+         
                   <th scope="row">
                     <%=i+1%>
                   </th>
                   <td>
                     <input type="hidden" value="<%=data[i].type%>" name="type" />
-                    <input type="hidden" value="<%=data[i].uniform_id%>" name="uniformID" />
+                    <input type="hidden" value="<%=data[i].uniforms_id%>" name="uniformID" />
                     <%=data[i].type%>
                   </td>
                   <td>
@@ -57,16 +58,19 @@
                   <td>
                     <div class="form-check">
                       <input class="form-check-input" type="checkbox" value="<%=data[i].donor_id%>" name="donorID">
-                      <input  type="hidden" value=<%=data[i].school_id%> name="schoolID"/>
-                      <label class="form-check-label" for="request_<%=i%>"> </label> 
+                      <input type="hidden" value=<%=data[i].school_id%> name="schoolID"/>
+                      <label class="form-check-label" for="request_<%=i%>"> </label>
                     </div>
                   </td>
-                </tr>
-                <% }; %>
+                  
+            
+              </tr>
+              <% }; %>
+              <button type="submit" class="btn btn-secondary">Submit</button>
+                  </form>
           </tbody>
         </table>
-        <button type="submit" class="btn btn-secondary">Submit</button>
-        </form>
+
       </div>
     </div>
 </body>
