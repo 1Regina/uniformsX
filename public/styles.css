@@ -45,6 +45,7 @@ body {
   }
 }
 
+/* table */
 th,
 td {
   border-color: #96d4d4;
@@ -67,12 +68,8 @@ table {
   justify-content: center;
 }
 
+/* photo */
 .circular--square {
   border-radius: 50%;
   border: 10px solid #06a3a3;
-}
-
-.circular--some {
-  border-radius: 10%;
-
 }
