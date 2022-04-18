@@ -460,7 +460,7 @@ app.get('/my_donations', async (request, response) => {
     const results = await pool.query(donatQuery);
     const data = results.rows;
     data.email = userEmail;
-    console.log(data);
+    // console.log(data);
     response.render('showMyDonations', { data });
   } else {
     const data = {};
@@ -528,11 +528,12 @@ app.post('/my_donations_available/post_changes', async (request, response) => {
   const {
     inventoryId, school_id, uniform_id, size, op,
   } = request.body;
+  // console.log('aaaaa', request.body.length);
   console.log(op, inventoryId, school_id, uniform_id, size);
   const sqls = [];
   if (op === 'Delete') {
     console.log('delete');
-    for (let i = 0; i < inventoryId.length; i += 1) {
+    for (let i = 0; i < uniform_id.length; i += 1) {
       const deleteQuery = `DELETE FROM inventory
                          WHERE id = ${inventoryId[i]}`;
 
@@ -542,14 +543,29 @@ app.post('/my_donations_available/post_changes', async (request, response) => {
     // response.redirect('/my_donations');
   } else if (op === 'Update') {
     console.log('uppdate');
-    for (let i = 0; i < inventoryId.length; i += 1) {
+
+    console.log(request.body);
+
+    if (uniform_id.length === 1) {
+      const sizeMod = String(size).replace(/ /g, '_').toUpperCase();
       const updateInventoryQuery = `UPDATE inventory
+                                      SET school_id = ${school_id},
+                                          uniform_id = ${uniform_id},
+                                          size = '${sizeMod}'
+                                      WHERE id = ${inventoryId}`;
+      pool.query(updateInventoryQuery);
+    } else if (uniform_id.length > 1) {
+      for (let i = 0; i < uniform_id.length; i += 1) {
+        const sizeMod = String(size[i]).replace(/ /g, '_').toUpperCase();
+        // console.log('aaaa', sizeMod);
+        const updateInventoryQuery = `UPDATE inventory
                                       SET school_id = ${school_id[i]},
                                           uniform_id = ${uniform_id[i]},
-                                          size = '${size[i]}'
+                                          size = '${sizeMod}'
                                       WHERE id = ${inventoryId[i]}`;
-      console.log(updateInventoryQuery);
-      sqls.push(pool.query(updateInventoryQuery));
+        console.log(updateInventoryQuery);
+        sqls.push(pool.query(updateInventoryQuery));
+      }
     }
     try { await Promise.all(sqls); }
     catch (err) {
@@ -636,7 +652,7 @@ app.post('/reserved_collected', async (request, response) => {
 //   const size = String(sizing).replace(/ /g, '_').toUpperCase();
 
 //   try {
-//     const findReqQtyQuery = `SELECT COUNT (inventory_id) 
+//     const findReqQtyQuery = `SELECT COUNT (inventory_id)
 //                                FROM donation_request
 //                                WHERE recipient_id = ${userID} `;
 //     const findRecipTot = await pool.query(findReqQtyQuery);
@@ -652,13 +668,13 @@ app.post('/reserved_collected', async (request, response) => {
 //     const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
 //     const uniID = await pool.query(findUniId);
 //     const uID = uniID.rows[0].id;
-//     const findPotentialsQuery = `SELECT donor_id, COUNT(status) 
-//                                    FROM inventory WHERE status = 'available' 
-//                                    AND school_id = ${schoolID} 
-//                                    AND uniform_id = ${uID} 
-//                                    AND size = '${size}' 
-//                                    GROUP BY donor_id 
-//                                    HAVING COUNT(status) = ${quantity} 
+//     const findPotentialsQuery = `SELECT donor_id, COUNT(status)
+//                                    FROM inventory WHERE status = 'available'
+//                                    AND school_id = ${schoolID}
+//                                    AND uniform_id = ${uID}
+//                                    AND size = '${size}'
+//                                    GROUP BY donor_id
+//                                    HAVING COUNT(status) = ${quantity}
 //                                    ORDER BY donor_id`;
 //     const findDonor = await pool.query(findPotentialsQuery);
 
@@ -674,7 +690,7 @@ app.post('/reserved_collected', async (request, response) => {
 //     const sqls = [];
 //     const requestIds = [];
 //     for (let i = 0; i < quantity; i += 1) {
-//       const updateQuery = `UPDATE inventory SET status = 'reserved' 
+//       const updateQuery = `UPDATE inventory SET status = 'reserved'
 //                              WHERE donor_id = ${donorFound}
 //                              AND school_id = ${schoolID}
 //                              AND uniform_id = ${uID}
@@ -699,10 +715,10 @@ app.post('/reserved_collected', async (request, response) => {
 //     console.log(insertSQLs);
 //     await Promise.all(insertSQLs);
 //     // find and alert donor
-//     const findDonorQuery = `SELECT email, name, COUNT(reserved_date), 
+//     const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
 //                                  school_name, type, size
-//                           FROM users 
-//                           INNER JOIN inventory 
+//                           FROM users
+//                           INNER JOIN inventory
 //                           ON users.id = donor_id
 //                           INNER JOIN donation_request
 //                           ON inventory.id=inventory_id
