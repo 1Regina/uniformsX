@@ -170,7 +170,7 @@
             </thead>
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
-                <form action="/details/<%=i%>/edit" method="POST">
+                <form action="/my_donations_available/<%=i%>/edit" method="POST">
                   <%if (data[i].status==='available' ) {%>
                     <tr>
                       <th scope="row">
