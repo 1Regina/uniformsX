@@ -57,45 +57,47 @@
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
                 <form action="/reserved_collected" method="POST">
-                <%if (data[i].status==='reserved' ) {%>
-                  <tr >
-                    <th scope="row">
-                      <%=i+1%>
-                    </th>
-                    <td>
-                        
-                      <input type="hidden" value="<%=data[i].school_name%>" name="schoolName"/>
-                      <%=data[i].school_name%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].type%>" name="type"/>
-                      <%=data[i].type%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].size%>" name="size"/>
-                      <%=data[i].size%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].status%>" name="status"/>
-                      <%=data[i].status%>
-                    </td>
-                    <td>
-                         <input type="hidden" value=<%=data[i].count%> name="quantity"/>
-                      <%=data[i].count%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].date%>" name="date"/>
-                      <%=data[i].date.toString().substring(0,15)%>
-                    </td>
-                    <td>
-                      <% let given_id=`given ${i}` %>
-                        
+                  <%if (data[i].status==='reserved' ) {%>
+                    <tr>
+                      <th scope="row">
+                        <%=i+1%>
+                      </th>
+                      <td>
+
+                        <input type="hidden" value="<%=data[i].school_name%>" name="schoolName" />
+                        <%=data[i].school_name%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].type%>" name="type" />
+                        <%=data[i].type%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].size%>" name="size" />
+                        <%=data[i].size%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].status%>" name="status" />
+                        <%=data[i].status%>
+                      </td>
+                      <td>
+                        <input type="hidden" value=<%=data[i].count%> name="quantity"/>
+                        <%=data[i].count%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].date%>" name="date" />
+                        <%=data[i].date.toString().substring(0,15)%>
+                      </td>
+                      <td>
+                        <% let given_id=`given ${i}` %>
+
                           <input type="submit" value="Given" id=<%=given_id %> class="btn btn-warning"/>
-                        </form>
-                    </td>
-                  </tr>
-                  <% }; %>
+
+                      </td>
+                    </tr>
                     <% }; %>
+                               </form>
+                      <% }; %>
+     
             </tbody>
           </table>
         </div>
@@ -168,51 +170,51 @@
             </thead>
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
-                  <form action="/details/<%=i%>/edit" method="POST">
-                <%if (data[i].status==='available' ) {%>
-                  <tr>
-                    <th scope="row">
-                      <%=i+1%>
-                    </th>
-                    <td>
-                       <input type="hidden" value="<%=data[i].school_name%>" name="schoolName"/>
-                      <%=data[i].school_name%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].type%>" name="type"/>
-                      <%=data[i].type%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].size%>" name="size"/>
-                      <%=data[i].size%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].status%>" name="status"/>
-                      <%=data[i].status%>
-                    </td>
-                    <td>
-                         <input type="hidden" value=<%=data[i].count%> name="quantity"/>
-                      <%=data[i].count%>
-                    </td>
-                    <td>
-                         <input type="hidden" value="<%=data[i].date%>" name="date"/>
-                      <%=data[i].date.toString().substring(0,15)%>
-                    </td>
-                    <td>
-                      <!-- <div class="btn-group btn-group-toggle" data-toggle="buttons"> -->
+                <form action="/details/<%=i%>/edit" method="POST">
+                  <%if (data[i].status==='available' ) {%>
+                    <tr>
+                      <th scope="row">
+                        <%=i+1%>
+                      </th>
+                      <td>
+                        <input type="hidden" value="<%=data[i].school_name%>" name="schoolName" />
+                        <%=data[i].school_name%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].type%>" name="type" />
+                        <%=data[i].type%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].size%>" name="size" />
+                        <%=data[i].size%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].status%>" name="status" />
+                        <%=data[i].status%>
+                      </td>
+                      <td>
+                        <input type="hidden" value=<%=data[i].count%> name="quantity"/>
+                        <%=data[i].count%>
+                      </td>
+                      <td>
+                        <input type="hidden" value="<%=data[i].date%>" name="date" />
+                        <%=data[i].date.toString().substring(0,15)%>
+                      </td>
+                      <td>
+                        <!-- <div class="btn-group btn-group-toggle" data-toggle="buttons"> -->
                         <% let details_id=`details_${i}` %>
-                        
-                            <!-- <input type="hidden" value="123xxx" name="sdadsadaas"/> -->
 
-                            <input type="submit" value="Details" id=<%=details_id%> class="btn btn-primary"/>
-                          </form>
+                          <!-- <input type="hidden" value="123xxx" name="sdadsadaas"/> -->
 
-                      
-                      <!-- </div> -->
-                    </td>
-                  </tr>
+                          <input type="submit" value="Details" id=<%=details_id%> class="btn btn-primary"/>
+                </form>
+
+
+                <!-- </div> -->
+                </td>
+                </tr>
+                <% }; %>
                   <% }; %>
-                    <% }; %>
             </tbody>
           </table>
         </div>
