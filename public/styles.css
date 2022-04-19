@@ -77,7 +77,7 @@ table {
 /* photo */
 .circular--square {
   border-radius: 50%;
-  border: 10px solid #06a3a3;
+  border: 10px solid silver;
 }
 
 .btn-grad {
