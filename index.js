@@ -13,7 +13,7 @@ import {
   dynamicDescSort,
   sortDonations,
   sortRequests,
-} from './sorts.js';
+} from './helper_sorts.js';
 import {
   updateMembership,
   getSchoolsList,
