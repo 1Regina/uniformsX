@@ -318,7 +318,7 @@ app.get('/:school/uniform', async (request, response) => {
         data.message = `There are no available stock for ${theSchool}`;
         response.render('null', { data });
       } else if (request.cookies.loggedIn === 'true') {
-        console.log(data);
+        // console.log(data);
         response.render('showInventoryMember', { data });
       } else {
         response.render('showInventory', { data });
@@ -341,20 +341,33 @@ app.post('/request', async (request, response) => {
     const donorID = info[0];
     const schoolID = info[1];
     const uniformID = info[2];
-    const size = String(info[3]).replace(/ /g, '_').toUpperCase();
+    const size = String(info[3]).trim().replace(/ /g, '_').toUpperCase();
     const quantity = info[4];
 
     // eslint-disable-next-line max-len
-    const doUpdateAndInsert = await updateAndInsert(donorID, schoolID, uniformID, size, userID, quantity);
+    const doUpdateAndInsert = await updateAndInsert(
+      donorID,
+      schoolID,
+      uniformID,
+      size,
+      userID,
+      quantity,
+    );
 
     response.redirect('/my_requests');
     // find and alert Donor
     const lastReq = await findDonorDetails();
-    sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.size, lastReq.type);
+    sendAnEmail(
+      lastReq.email,
+      lastReq.school_name,
+      lastReq.count,
+      lastReq.size,
+      lastReq.type,
+    );
     // response.render('null', { data });
-  // } else {
-  //   data.message = 'Only members can request';
-  //   response.render('null', { data });
+    // } else {
+    //   data.message = 'Only members can request';
+    //   response.render('null', { data });
   } else if (typeof requestInfo === 'object') {
     for (let i = 0; i < requestInfo.length; i += 1) {
       const info = requestInfo[i].split(', ');
@@ -366,11 +379,25 @@ app.post('/request', async (request, response) => {
       console.log(info);
 
       // eslint-disable-next-line max-len
-      const doUpdateAndInsert = await updateAndInsert(donorID, schoolID, uniformID, size, userID, quantity);
+      const doUpdateAndInsert = await updateAndInsert(
+        donorID,
+        schoolID,
+        uniformID,
+        size,
+        userID,
+        quantity,
+      );
       console.log(doUpdateAndInsert);
       const lastReq = await findDonorDetails();
-      sendAnEmail(lastReq.email, lastReq.school_name, lastReq.count, lastReq.size, lastReq.type);
-    } response.redirect('/my_requests');
+      sendAnEmail(
+        lastReq.email,
+        lastReq.school_name,
+        lastReq.count,
+        lastReq.size,
+        lastReq.type,
+      );
+    }
+    response.redirect('/my_requests');
   } else {
     data.isLogin = false;
     console.log('asda');
@@ -475,18 +502,28 @@ app.get('/donate', async (request, response) => {
 app.post('/donate', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
   const results = request.body;
-  results.reSize = results.size.map((x) => x.trim().replace(/ /g, '_').toUpperCase());
   console.log(results);
+  const sqls = [];
   try {
-    const sqls = [];
-    for (let i = 0; i < results.schoolID.length; i += 1) {
-      for (let j = 0; j < results.quantity[i]; j += 1) {
-        const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${results.schoolID[i]}, ${results.uniformID[i]},'${results.reSize[i]}')`;
-        console.log(insertQuery);
+    if (results.uniformID.length === 1) {
+      results.reSize = results.size.trim().replace(/ /g, '_').toUpperCase();
+      for (let i = 0; i < results.quantity; i += 1) {
+        const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${results.schoolID}, ${results.uniformID},'${results.reSize}')`;
         sqls.push(pool.query(insertQuery));
       }
+      await Promise.all(sqls);
+    } else {
+      results.reSize = results.size.map((x) => x.trim().replace(/ /g, '_').toUpperCase());
+
+      for (let i = 0; i < results.schoolID.length; i += 1) {
+        for (let j = 0; j < results.quantity[i]; j += 1) {
+          const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${results.schoolID[i]}, ${results.uniformID[i]},'${results.reSize[i]}')`;
+          console.log(insertQuery);
+          sqls.push(pool.query(insertQuery));
+        }
+      }
+      await Promise.all(sqls);
     }
-    await Promise.all(sqls);
     response.redirect('/my_donations');
   } catch (err) {
     console.error(err.message); // wont break
@@ -495,7 +532,6 @@ app.post('/donate', async (request, response) => {
 
 app.get('/my_donations', async (request, response) => {
   if (request.cookies.loggedIn === 'true') {
-    console.log('aaaaaaaaa');
     const { userEmail, userID, loggedIn } = request.cookies;
     const donatQuery = `SELECT school_name, 
                                type,
@@ -564,7 +600,7 @@ app.post('/my_donations_available/:setId/edit', async (request, response) => {
     const uniformQuery = 'SELECT * FROM uniforms';
     const uniformResult = await pool.query(uniformQuery);
     data.uniforms = uniformResult.rows;
-    console.log(data);
+    // console.log(data);
     response.render('editItem', { data });
 
     // response.send(data);
@@ -617,8 +653,9 @@ app.post('/my_donations_available/post_changes', async (request, response) => {
         sqls.push(pool.query(updateInventoryQuery));
       }
     }
-    try { await Promise.all(sqls); }
-    catch (err) {
+    try {
+      await Promise.all(sqls);
+    } catch (err) {
       console.error(err.message);
     }
   } else {
@@ -842,7 +879,7 @@ app.get('/my_requests', async (request, response) => {
 
     const results = await pool.query(sqlQuery);
     const data = results.rows;
-    console.log(data);
+    // console.log(data);
     response.render('showMyRequests', { data });
   } else {
     const data = {};
