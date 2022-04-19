@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { response } from 'express';
 import methodOverride from 'method-override';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
@@ -378,69 +378,119 @@ app.post('/request', async (request, response) => {
   }
 });
 
-app.get('/donate', (request, response) => {
+// app.get('/donate0', (request, response) => {
+//   const { userEmail, userID, loggedIn } = request.cookies;
+//   const data = {};
+//   // let schoolList
+//   let schools;
+//   if (loggedIn === 'true') {
+//     const schoolQuery = 'SELECT * FROM schools';
+//     pool
+//       .query(schoolQuery)
+//       .then((schoolResult) => {
+//         data.schools = schoolResult.rows;
+//         // console.log(schools);
+//         // schoolList = getSchoolsList(schools);
+//         // console.log(schoolList);
+//       })
+//       .then(() => {
+//         const uniformQuery = 'SELECT * FROM uniforms';
+//         pool.query(uniformQuery).then((uniformResult) => {
+//           // console.log(uniformResult.rows);
+//           data.uniforms = uniformResult.rows;
+
+//           response.render('donate', { data });
+//         });
+//       })
+//       .catch((err) => {
+//         console.error(err.message);
+//       });
+//   } else {
+//     // response.send('You need to login in');
+//     data.message = 'You need to be a member to donate uniforms. Please go to SignUp to be a member or Login';
+//     response.render('null', { data });
+//   }
+// });
+
+// app.post('/donate0', async (request, response) => {
+//   // if (request.cookies.loggedIn === 'true') {
+//   const { userEmail, userID, loggedIn } = request.cookies;
+//   const { school, type, quantity } = request.body;
+//   const sizing = request.body.size;
+//   const size = String(sizing).replace(/ /g, '_').toUpperCase();
+//   try {
+//     const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
+//     const schoolid = await pool.query(infoQuery);
+//     const schoolID = schoolid.rows[0].school_id;
+//     const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
+//     console.log('bbbb', findUniId);
+//     const uniID = await pool.query(findUniId);
+//     const uID = uniID.rows[0].id;
+//     const sqls = [];
+//     for (let i = 0; i < quantity; i += 1) {
+//       const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${schoolID}, ${uID},'${size}')`;
+//       console.log(insertQuery);
+//       sqls.push(pool.query(insertQuery));
+//     }
+//     await Promise.all(sqls);
+//     response.redirect('/my_donations');
+//   } catch (err) {
+//     console.error(err.message); // wont break
+//   }
+//   // } else {
+//   //   // response.send('Only members can donate');
+
+//   // }
+// });
+
+app.get('/donate', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
   const data = {};
-  // let schoolList
-  let schools;
+
   if (loggedIn === 'true') {
     const schoolQuery = 'SELECT * FROM schools';
     pool
       .query(schoolQuery)
       .then((schoolResult) => {
         data.schools = schoolResult.rows;
-        // console.log(schools);
-        // schoolList = getSchoolsList(schools);
-        // console.log(schoolList);
       })
       .then(() => {
         const uniformQuery = 'SELECT * FROM uniforms';
         pool.query(uniformQuery).then((uniformResult) => {
-          // console.log(uniformResult.rows);
           data.uniforms = uniformResult.rows;
-
-          response.render('donate', { data });
+          response.render('donateDynamic', { data });
         });
       })
       .catch((err) => {
         console.error(err.message);
       });
   } else {
-    // response.send('You need to login in');
-    data.message = 'You need to be a member to donate uniforms. Please go to SignUp to be a member or Login';
-    response.render('null', { data });
+    data.isLogin = false;
+    response.render('loginForm', { data });
+    // data.message = 'You need to be a member to donate uniforms. Please go to SignUp to be a member or Login';
+    // response.render('null', { data });
   }
 });
 
 app.post('/donate', async (request, response) => {
-  // if (request.cookies.loggedIn === 'true') {
   const { userEmail, userID, loggedIn } = request.cookies;
-  const { school, type, quantity } = request.body;
-  const sizing = request.body.size;
-  const size = String(sizing).replace(/ /g, '_').toUpperCase();
+  const results = request.body;
+  results.reSize = results.size.map((x) => x.trim().replace(/ /g, '_').toUpperCase());
+  console.log(results);
   try {
-    const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
-    const schoolid = await pool.query(infoQuery);
-    const schoolID = schoolid.rows[0].school_id;
-    const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
-    console.log('bbbb', findUniId);
-    const uniID = await pool.query(findUniId);
-    const uID = uniID.rows[0].id;
     const sqls = [];
-    for (let i = 0; i < quantity; i += 1) {
-      const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${schoolID}, ${uID},'${size}')`;
-      console.log(insertQuery);
-      sqls.push(pool.query(insertQuery));
+    for (let i = 0; i < results.schoolID.length; i += 1) {
+      for (let j = 0; j < results.quantity[i]; j += 1) {
+        const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${results.schoolID[i]}, ${results.uniformID[i]},'${results.reSize[i]}')`;
+        console.log(insertQuery);
+        sqls.push(pool.query(insertQuery));
+      }
     }
     await Promise.all(sqls);
     response.redirect('/my_donations');
   } catch (err) {
     console.error(err.message); // wont break
   }
-  // } else {
-  //   // response.send('Only members can donate');
-
-  // }
 });
 
 app.get('/my_donations', async (request, response) => {
@@ -805,38 +855,5 @@ app.get('/my_requests', async (request, response) => {
 
 app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
 
-app.get('/test', async (request, response) => {
-  const { userEmail, userID, loggedIn } = request.cookies;
-  const data = {};
-  // let schoolList
-  let schools;
-  if (loggedIn === 'true') {
-    const schoolQuery = 'SELECT * FROM schools';
-    pool
-      .query(schoolQuery)
-      .then((schoolResult) => {
-        data.schools = schoolResult.rows;
-        // console.log(schools);
-        // schoolList = getSchoolsList(schools);
-        // console.log(schoolList);
-      })
-      .then(() => {
-        const uniformQuery = 'SELECT * FROM uniforms';
-        pool.query(uniformQuery).then((uniformResult) => {
-          // console.log(uniformResult.rows);
-          data.uniforms = uniformResult.rows;
-
-          response.render('donateDynamic', { data });
-        });
-      })
-      .catch((err) => {
-        console.error(err.message);
-      });
-  } else {
-    // response.send('You need to login in');
-    data.message = 'You need to be a member to donate uniforms. Please go to SignUp to be a member or Login';
-    response.render('null', { data });
-  }
-});
 // set port to listen
 app.listen(port);

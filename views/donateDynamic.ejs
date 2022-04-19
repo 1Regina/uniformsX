@@ -28,10 +28,10 @@
                   <label for="school" class="form-label ">
                     <h5>School:</h5>
                   </label>
-                  <select class="custom-select" id="school" name="school" required>
+                  <select class="custom-select" id="school" name="schoolID" required>
                     <option selected>Choose...</option>
                     <% data.schools.forEach((school)=> {%>
-                      <option value="<%= school.school_name %>">
+                      <option value="<%= school.school_id %>">
                         <%= school.school_name %>
                       </option>
                       <% }); %>
@@ -43,10 +43,10 @@
                   <label for="type" class="form-label ">
                     <h5>Type:</h5>
                   </label>
-                  <select class="custom-select" id="type" name="type" required>
+                  <select class="custom-select" id="type" name="uniformID" required>
                     <option selected>Choose...</option>
                     <% data.uniforms.forEach((catalog)=> {%>
-                      <option value="<%= catalog.type %>">
+                      <option value="<%= catalog.id %>">
                         <%= catalog.type %>
                       </option>
                       <% }); %>
@@ -92,6 +92,8 @@
           const survey_options = document.getElementById('survey_options');
           const add_more_fields = document.getElementById('add_more_fields');
           const remove_fields = document.getElementById('remove_fields');
+          // let count_rows_added = 0;
+
 
           const newRowToAdd = `<div class="row center">
             <div class="col-sm-9 shadow rounded" style = "padding-bottom: 30px; padding-top: 30px; background-color: whitesmoke; margin: 10px">
@@ -101,10 +103,10 @@
                 <label for="school" class="form-label ">
                   <h5>School:</h5>
                 </label>
-                <select class="custom-select" id="school" name="school_1" required>
+                <select class="custom-select" id="school" name="schoolID" required>
                   <option selected>Choose...</option>
                   <% data.schools.forEach((school)=> {%>
-                      <option value="<%= school.school_name %>">
+                      <option value="<%= school.school_id %>">
                         <%= school.school_name %>
                       </option>
                       <% }); %>
@@ -116,10 +118,10 @@
                 <label for="type" class="form-label ">
                   <h5>Type:</h5>
                 </label>
-                <select class="custom-select" id="type" name="type" required>
+                <select class="custom-select" id="type" name="uniformID" required>
                   <option selected>Choose...</option>
                   <% data.uniforms.forEach((catalog)=> {%>
-                      <option value="<%= catalog.type %>">
+                      <option value="<%= catalog.id %>">
                         <%= catalog.type %>
                       </option>
                       <% }); %>
@@ -161,20 +163,28 @@
             // newField.setAttribute('siz', 50);
             // newField.setAttribute('placeholder', 'Another Field');
             // survey_options.appendChild(newField);
+
+            // count_rows_added += 1
             const div = document.createElement('div');
+            // div.setAttribute('name', `row_${count_rows_added}`)
             div.innerHTML = newRowToAdd.trim()
             survey_options.append(div)
+            // console.log(`counter`, count_rows_added)
           }
 
           remove_fields.onclick = function () {
-          survey_options.removeChild(survey_options.lastChild);
+            // count_rows_added -= 1
+            survey_options.removeChild(survey_options.lastChild);
             // const input_tags = survey_options.getElementsByTagName('input');
             // if (input_tags.length > 2) {
             //   survey_options.removeChild(input_tags[(input_tags.length) - 1]);
             // }
+            //  console.log(`counter`, count_rows_added)
           }
+
         </script>
         <br>
+
         <!-- <button type="submit" class="btn btn-secondary">Submit</button> -->
       </div>
       <div class="center">
