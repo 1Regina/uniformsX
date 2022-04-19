@@ -12,24 +12,27 @@
 
 <body>
   <%- include('header') -%>
-    <div class="d-flex flex-row">
+    <div class="d-flex flex-sm-row">
       <div class="col-sm-4 d-flex justify-content-center" style="margin-top: 20px; padding-top: 50px;">
+          <ul>
         <h3>
           <%=data.message%>
         </h3>
         <br>
-        <div class="row">
-          <img class="circular--square" src="<%=data.photo%>" width="230" height="230" />
-          <!-- <div class="col-sm-1"> -->
+     
+          <img class="circular--square" src="<%=data.photo%>" width="280" height="280" />
+    
+        <p class="text-muted">
           <% let url=`/add_photo` %>
-            <a href="<%=url %>" style="color: silver; font-size:18px">
+            <a href="<%=url %>" style="color:rgb(37, 27, 3); font-size:18px">
               <%='update photo'%>
             </a>
-        </div>
+          </p>
         <!-- </div> -->
+         </ul>
       </div>
 
-      <div class="p-5 col-sm-8" style="background-color: whitesmoke;">
+      <div class="p-5 col-6" style="background-color: whitesmoke; margin-top: 80px ;border-radius: 25px;">
         <% for (const [key,value] of Object.entries(data)) {%>
 
           <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
