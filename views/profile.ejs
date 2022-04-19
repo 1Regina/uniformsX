@@ -12,59 +12,63 @@
 
 <body>
   <%- include('header') -%>
-    <div class="container-sm capitalize row justify-content-center">
-       <div class="col-sm-4">
-      <h3>
-        <%=data.message%>
-      </h3>
-      <br>
+    <div class="d-flex flex-sm-col" id="profile-wrapper">
+      <div class="col-sm-4 d-flex justify-content-center" style="margin-top: 20px; padding-top: 50px;">
+        <ul>
+          <h3>
+            <%=data.message%>
+          </h3>
+          <br>
 
-      <img class="circular--square" src="<%=data.photo%>" width="280" height="280" />
-      <div class="col-sm-2">
-        <% let url=`/add_photo` %>
-          <a href="<%=url %>" style="color: darkolivegreen; font-size:18px">
-            <%='update photo'%>
-          </a>
+          <img class="circular--square" src="<%=data.photo%>" width="280" height="280" />
+
+          <p class="text-muted">
+            <% let url=`/add_photo` %>
+              <a href="<%=url %>" style="color:rgb(37, 27, 3); font-size:18px">
+                <%='update photo'%>
+              </a>
+          </p>
+          <!-- </div> -->
+        </ul>
       </div>
-      </div>
-  
-       <div class="col-sm-4">
-      <% for (const [key,value] of Object.entries(data)) {%>
 
-        <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
-          <ul>
-            <h6>
-              <%=key%>
-            </h6>
-            <p class="text-muted">
-              <%=value%>
-            </p>
-          </ul>
-          <%}%>
+      <div class="p-5 col-sm-12 col-md-6" style="background-color: whitesmoke; margin-top: 80px ;border-radius: 25px;">
+        <% for (const [key,value] of Object.entries(data)) {%>
 
-            <% if (key==="created_on" ) {%>
-              <ul>
-                <h6>
-                  <%='Member since' %>
-                </h6>
-                <p class="text-muted">
-                  <%=value.toString().substring(0,15)%>
-                </p>
-              </ul>
-              <%}%>
+          <% if ((key==="name" ) || (key==="email" ) || (key==="phone" )) {%>
+            <ul>
+              <h6>
+                <%=key%>
+              </h6>
+              <p class="text-muted">
+                <%=value%>
+              </p>
+            </ul>
+            <%}%>
+
+              <% if (key==="created_on" ) {%>
+                <ul>
+                  <h6>
+                    <%='Member since' %>
+                  </h6>
+                  <p class="text-muted">
+                    <%=value.toString().substring(0,15)%>
+                  </p>
+                </ul>
                 <%}%>
 
-                  <br>
-                  <br>
+                  <%}%>
 
-                  <div class="col-sm-1 ">
-                    <% let update_id=`update ${data.id}` %>
-                      <form action="/edit_Profile" method="GET">
-                        <input type="submit" class="p-3 btn btn-grad" value="Update" <%=id=update_id %>/>
-                      </form>
-                  </div>
-                  </div>
-    </div>
+                    <br>
+                    <br>
+
+                    <div class="col">
+                      <% let update_id=`update ${data.id}` %>
+                        <form action="/edit_Profile" method="GET">
+                          <input type="submit" class="p-3 btn btn-grad" value="Update" <%=id=update_id %>/>
+                        </form>
+                    </div>
+      </div>
 </body>
 
 </html>

@@ -49,6 +49,9 @@ body {
   .brand-name {
     display: none;
   }
+  #profile-wrapper {
+    flex-direction: column!important;
+  }
 }
 
 /* table */

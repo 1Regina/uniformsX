@@ -185,7 +185,7 @@ app.get('/my_profile', async (request, response) => {
     const myInfo = await pool.query(userInfoQuery);
     const data = myInfo.rows[0];
     data.message = 'My Profile';
-    response.render('profile1', { data });
+    response.render('profile', { data });
   } else {
     data.isLogin = false;
     response.render('loginForm', { data });
