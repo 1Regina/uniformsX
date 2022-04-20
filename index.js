@@ -879,6 +879,7 @@ app.get('/my_requests', async (request, response) => {
 
     const results = await pool.query(sqlQuery);
     const data = results.rows;
+    data.recipient = userID;
     // console.log(data);
     response.render('showMyRequests', { data });
   } else {

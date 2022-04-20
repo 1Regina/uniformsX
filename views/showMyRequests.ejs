@@ -24,10 +24,8 @@
           <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/date/desc">Date (Latest)</a></li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/type/asc">Type (A-Z)</a></li>
           <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/type/desc">Type (Z-A)</a></li>
-          <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/quantity/asc">Quantity(Asc)</a>
-          </li>
-          <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/quantity/desc">Quantity (Desc)</a>
-          </li>
+          <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/quantity/asc">Quantity(Asc)</a></li>
+          <li><a class="dropdown-item" href="http://localhost:3004/my_requests-sortby/quantity/desc">Quantity (Desc)</a></li>
         </ul>
       </div>
     </div>
@@ -49,32 +47,52 @@
                 <th scope="col">Status</th>
                 <th scope="col">Quantity</th>
                 <th scope="col">Date</th>
+                <th scope="col">Donor</th>
               </tr>
             </thead>
             <tbody>
               <%for (let i=0; i< data.length; i+=1) {%>
+                    <%let chatroomName=`R${data.recipient}D${data[i].donor_id}`%>
+                <form action="/<%=chatroomName%>/chat" method="POST">
                 <%if (data[i].status==='reserved' ) {%>
                   <tr>
                     <th scope="row">
                       <%=i+1%>
                     </th>
                     <td>
+                        <input type="hidden" value="<%=data[i].school_name%>" name="schoolName" />
                       <%=data[i].school_name%>
                     </td>
                     <td>
+                       <input type="hidden" value="<%=data[i].type%>" name="type"/>
                       <%=data[i].type%>
                     </td>
                     <td>
+                        <input type="hidden" value="<%=data[i].size%>" name="size" />
                       <%=data[i].size%>
                     </td>
                     <td>
+                        <input type="hidden" value="<%=data[i].status%>" name="status" />
                       <%=data[i].status%>
                     </td>
                     <td>
+                        <input type="hidden" value=<%=data[i].count%> name="quantity"/>
                       <%=data[i].count%>
                     </td>
                     <td>
+                      <input type="hidden" value="<%=data[i].date%>" name="date" />
                       <%=data[i].date.toString().substring(0,15)%>
+                    </td>
+                      <td>
+                        <div class="btn-group btn-group-toggle" data-toggle="buttons">
+                      <%=data[i].donor_id%>     
+                        <% let chat_id=`chat_${i}`%>
+                    
+                          
+                            <input type="hidden" value="<%=chatroomName%>" name="chatroom" id="<%chat_id%>"/>
+                            <input type="submit" value="Chat" name="activateChat" class="btn btn-warning"/>
+                          </form>     
+                          </div>       
                     </td>
                   </tr>
                   <% }; %>
