@@ -1,4 +1,4 @@
-import express, { response } from 'express';
+import express from 'express';
 import methodOverride from 'method-override';
 import cookieParser from 'cookie-parser';
 import bodyParser from 'body-parser';
