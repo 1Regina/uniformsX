@@ -47,19 +47,25 @@ const getSchoolsList = (queryArray) => {
 
 // * Save file with original filename ie. hello.jpg/ hello.png
 const storage = multer.diskStorage({
-
   destination: (req, file, callback) => {
     callback(null, 'uploads/');
   },
   filename: (req, file, callback) => {
-    callback(null, (`${req.cookies.userEmail}_${file.originalname}`));
+    callback(null, `${req.cookies.userEmail}_${file.originalname}`);
   },
 });
 
 const upload = multer({ storage });
 const singleFileUpload = upload.single('photo');
 
-const updateAndInsert = async (donorID, schoolID, uniformID, size, userID, quantity) => {
+const updateAndInsert = async (
+  donorID,
+  schoolID,
+  uniformID,
+  size,
+  userID,
+  quantity,
+) => {
   const updateSQLs = [];
   const requestIds = [];
   try {
@@ -90,10 +96,28 @@ const updateAndInsert = async (donorID, schoolID, uniformID, size, userID, quant
 };
 // response.redirect('/my_requests');
 // find and alert Donor
-const findDonorDetails = async () => {
+const findDonorDetails = async (donorID, schoolID, uniformID, size) => {
   try {
-    const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
-                               school_name, type, size
+    // const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
+    //                                school_name, type, size
+    //                         FROM users
+    //                         INNER JOIN inventory
+    //                         ON users.id = donor_id
+    //                         INNER JOIN donation_request
+    //                         ON inventory.id=inventory_id
+    //                         INNER JOIN schools
+    //                         ON schools.school_id = inventory.school_id
+    //                         INNER JOIN uniforms
+    //                         ON uniforms.id = uniform_id
+    //                         WHERE reserved_date::date = now()::date
+    //                         AND donor_id = ${donorID} 
+    //                         AND inventory.school_id = ${schoolID}
+    //                         AND inventory.uniform_id = ${uniformID}
+    //                         AND size = '${size}'
+    //                         AND status = 'reserved'
+    //                         GROUP BY email, name, school_name, type, size`;
+       const findDonorQuery = `SELECT email, name, 
+                                   school_name, type, size
                             FROM users
                             INNER JOIN inventory
                             ON users.id = donor_id
@@ -103,14 +127,21 @@ const findDonorDetails = async () => {
                             ON schools.school_id = inventory.school_id
                             INNER JOIN uniforms
                             ON uniforms.id = uniform_id
-                            WHERE reserved_date::date = now()::date
-                            GROUP BY email, name, school_name, type, size`;
+                            WHERE 
+                                donor_id = ${donorID} 
+                            AND inventory.school_id = ${schoolID}
+                            AND inventory.uniform_id = ${uniformID}
+                            AND size = '${size}'
+                            AND status = 'reserved'
+                            `;
     const resultDonor = await pool.query(findDonorQuery);
     const num = resultDonor.rows.length;
     const lastReq = resultDonor.rows[num - 1];
+    console.log(lastReq);
     return lastReq;
   } catch (err) {
-    console.error(err.message); // wont break
+    console.error('find Donor error', err.message); // wont break
+    return null;
   }
 };
 
@@ -128,7 +159,7 @@ const sendAnEmail = async (email, school_name, count, size, type) => {
           email: `${email}`,
         },
       ],
-      from: 'regina_cheong@hotmail.com', // Change to your verified sender
+      from: 'regina.cheong@hotmail.com', // Change to your verified sender
       subject: `There is a request for your donated ${school_name} uniforms`,
       text: `There is a request for the ${count} ${school_name} ${type} of size ${size}. lalala `,
       html: `<strong>There is a request for your ${count} piece(s) of ${school_name} ${type} of size ${size}.</strong>`,
@@ -147,7 +178,8 @@ const sendAnEmail = async (email, school_name, count, size, type) => {
     return data;
   } catch (err) {
     console.error(err.message); // wont break
-  } };
+  }
+};
 
 // const summarizeManyItemsIntoObj = (everyData) => {
 //   const combineActionObj = {};

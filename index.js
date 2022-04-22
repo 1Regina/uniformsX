@@ -119,7 +119,6 @@ app.post('/add_photo', singleFileUpload, (request, response) => {
       return;
     }
     // response.send(result.rows[0]);
-
     response.redirect('/my_profile');
   });
 });
@@ -260,39 +259,6 @@ app.get('/secondary_school', (request, response) => {
   });
 });
 
-// app.get('/:school/uniform0', (request, response) => {
-//   const theSchool = request.params.school;
-//   console.log(theSchool);
-//   const sqlQuery = `SELECT school_name, school_code,
-//                            uniforms.id AS uniforms_id, type,
-//                            donor_id, inventory.school_id, uniform_id, size, COUNT(status)
-//                     FROM schools
-//                     INNER JOIN inventory
-//                     ON schools.school_id = inventory.school_id
-//                     INNER JOIN uniforms
-//                     ON uniforms.id = inventory.uniform_id
-//                     WHERE STATUS = 'available' AND school_name='${theSchool}'
-//                     GROUP BY school_name, school_code,
-//                            uniforms_id, type,
-//                            donor_id, inventory.school_id, uniform_id, size
-//                     ORDER BY type, size`;
-//   pool
-//     .query(sqlQuery)
-//     .then((summaryCount) => {
-//       const data = summaryCount.rows;
-//       if (data.length === 0) {
-//         data.message = `There are no available stock for ${theSchool}`;
-//         response.render('null', { data });
-//       } else {
-//         console.log(data);
-//         response.render('showInventory', { data });
-//       }
-//     })
-//     .catch((err) => {
-//       console.error(err.message); // wont break
-//     });
-// });
-
 app.get('/:school/uniform', async (request, response) => {
   const theSchool = request.params.school;
 
@@ -329,6 +295,90 @@ app.get('/:school/uniform', async (request, response) => {
     });
 });
 
+// with quota
+// app.post('/request', async (request, response) => {
+//   const { userEmail, userID, loggedIn } = request.cookies;
+//   const { requestInfo } = request.body;
+//   const data = {};
+
+//   console.log(typeof requestInfo);
+//   try {
+//     const accumQuery = `SELECT COUNT(inventory_id) FROM donation_request WHERE recipient_id = ${userID}`;
+//     const accum = await pool.query(accumQuery);
+//     const accumCurrent = accum.rows[0].count;
+
+//     if (typeof requestInfo === 'string') {
+//       const info = requestInfo.split(', ');
+//       const donorID = info[0];
+//       const schoolID = info[1];
+//       const uniformID = info[2];
+//       const size = String(info[3]).trim().replace(/ /g, '_').toUpperCase();
+//       const quantity = info[4];
+
+//       // eslint-disable-next-line max-len
+//       await updateAndInsert(
+//         donorID,
+//         schoolID,
+//         uniformID,
+//         size,
+//         userID,
+//         quantity,
+//       );
+
+//       response.redirect('/my_requests');
+//       // find and alert Donor
+//       const lastReq = await findDonorDetails();
+//       sendAnEmail(
+//         lastReq.email,
+//         lastReq.school_name,
+//         lastReq.count,
+//         lastReq.size,
+//         lastReq.type,
+//       );
+//     // response.render('null', { data });
+//     // } else {
+//     //   data.message = 'Only members can request';
+//     //   response.render('null', { data });
+//     } else if (typeof requestInfo === 'object') {
+//       for (let i = 0; i < requestInfo.length; i += 1) {
+//         const info = requestInfo[i].split(', ');
+//         const donorID = info[0];
+//         const schoolID = info[1];
+//         const uniformID = info[2];
+//         const size = info[3];
+//         const quantity = info[4];
+//         console.log(info);
+
+//         // eslint-disable-next-line max-len
+//         const doUpdateAndInsert = await updateAndInsert(
+//           donorID,
+//           schoolID,
+//           uniformID,
+//           size,
+//           userID,
+//           quantity,
+//         );
+//         console.log(doUpdateAndInsert);
+//         const lastReq = await findDonorDetails();
+//         sendAnEmail(
+//           lastReq.email,
+//           lastReq.school_name,
+//           lastReq.count,
+//           lastReq.size,
+//           lastReq.type,
+//         );
+//       }
+//       response.redirect('/my_requests');
+//     } else {
+//       data.isLogin = false;
+
+//       response.render('loginForm', { data });
+//     }
+//   } catch (err) {
+//     console.error(err.message); // wont break
+//   }
+// });
+
 app.post('/request', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
   const { requestInfo } = request.body;
@@ -337,6 +387,7 @@ app.post('/request', async (request, response) => {
   console.log(typeof requestInfo);
 
   if (typeof requestInfo === 'string') {
+    console.log('String', requestInfo);
     const info = requestInfo.split(', ');
     const donorID = info[0];
     const schoolID = info[1];
@@ -354,16 +405,23 @@ app.post('/request', async (request, response) => {
       quantity,
     );
 
-    response.redirect('/my_requests');
     // find and alert Donor
-    const lastReq = await findDonorDetails();
-    sendAnEmail(
+    const lastReq = await findDonorDetails(
+      donorID,
+      schoolID,
+      uniformID,
+      size,
+    );
+
+    await sendAnEmail(
       lastReq.email,
       lastReq.school_name,
-      lastReq.count,
+      // lastReq.count,
+      quantity,
       lastReq.size,
       lastReq.type,
     );
+    response.redirect('/my_requests');
     // response.render('null', { data });
     // } else {
     //   data.message = 'Only members can request';
@@ -376,7 +434,7 @@ app.post('/request', async (request, response) => {
       const uniformID = info[2];
       const size = info[3];
       const quantity = info[4];
-      console.log(info);
+      console.log('OBJECT', info);
 
       // eslint-disable-next-line max-len
       const doUpdateAndInsert = await updateAndInsert(
@@ -388,11 +446,19 @@ app.post('/request', async (request, response) => {
         quantity,
       );
       console.log(doUpdateAndInsert);
-      const lastReq = await findDonorDetails();
+      const lastReq = await findDonorDetails(
+        donorID,
+        schoolID,
+        uniformID,
+        size,
+        userID,
+        quantity,
+      );
       sendAnEmail(
         lastReq.email,
         lastReq.school_name,
-        lastReq.count,
+        quantity,
+        // lastReq.count,
         lastReq.size,
         lastReq.type,
       );
@@ -404,71 +470,6 @@ app.post('/request', async (request, response) => {
     response.render('loginForm', { data });
   }
 });
-
-// app.get('/donate0', (request, response) => {
-//   const { userEmail, userID, loggedIn } = request.cookies;
-//   const data = {};
-//   // let schoolList
-//   let schools;
-//   if (loggedIn === 'true') {
-//     const schoolQuery = 'SELECT * FROM schools';
-//     pool
-//       .query(schoolQuery)
-//       .then((schoolResult) => {
-//         data.schools = schoolResult.rows;
-//         // console.log(schools);
-//         // schoolList = getSchoolsList(schools);
-//         // console.log(schoolList);
-//       })
-//       .then(() => {
-//         const uniformQuery = 'SELECT * FROM uniforms';
-//         pool.query(uniformQuery).then((uniformResult) => {
-//           // console.log(uniformResult.rows);
-//           data.uniforms = uniformResult.rows;
-
-//           response.render('donate', { data });
-//         });
-//       })
-//       .catch((err) => {
-//         console.error(err.message);
-//       });
-//   } else {
-//     // response.send('You need to login in');
-//     data.message = 'You need to be a member to donate uniforms. Please go to SignUp to be a member or Login';
-//     response.render('null', { data });
-//   }
-// });
-
-// app.post('/donate0', async (request, response) => {
-//   // if (request.cookies.loggedIn === 'true') {
-//   const { userEmail, userID, loggedIn } = request.cookies;
-//   const { school, type, quantity } = request.body;
-//   const sizing = request.body.size;
-//   const size = String(sizing).replace(/ /g, '_').toUpperCase();
-//   try {
-//     const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
-//     const schoolid = await pool.query(infoQuery);
-//     const schoolID = schoolid.rows[0].school_id;
-//     const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
-//     console.log('bbbb', findUniId);
-//     const uniID = await pool.query(findUniId);
-//     const uID = uniID.rows[0].id;
-//     const sqls = [];
-//     for (let i = 0; i < quantity; i += 1) {
-//       const insertQuery = `INSERT INTO inventory (donor_id, school_id, uniform_id, size) VALUES (${userID}, ${schoolID}, ${uID},'${size}')`;
-//       console.log(insertQuery);
-//       sqls.push(pool.query(insertQuery));
-//     }
-//     await Promise.all(sqls);
-//     response.redirect('/my_donations');
-//   } catch (err) {
-//     console.error(err.message); // wont break
-//   }
-//   // } else {
-//   //   // response.send('Only members can donate');
-
-//   // }
-// });
 
 app.get('/donate', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
@@ -665,8 +666,6 @@ app.post('/my_donations_available/post_changes', async (request, response) => {
 });
 
 app.post('/reserved_collected', async (request, response) => {
-  console.log('inside now');
-
   const {
     schoolName, type, size, status, quantity, date,
   } = request.body;
@@ -703,162 +702,6 @@ app.post('/reserved_collected', async (request, response) => {
   }
 });
 
-// app.get('/request0', async (request, response) => {
-//   const { userEmail, userID, loggedIn } = request.cookies;
-//   const data = {};
-
-//   if (loggedIn === 'true') {
-//     try {
-//       const schoolQuery = 'SELECT * FROM schools';
-//       const schoolResult = await pool.query(schoolQuery);
-//       data.schools = schoolResult.rows;
-//       const uniformQuery = 'SELECT * FROM uniforms';
-//       const uniformResult = await pool.query(uniformQuery);
-//       data.uniforms = uniformResult.rows;
-//       response.render('request', { data });
-//     } catch (err) {
-//       console.error(err.message);
-//       response.send('Cannot connect');
-//     }
-//   } else {
-//     // response.send('You need to login in');
-
-//     data.message = 'You need to be a member to request uniforms. Please go to SignUp to be a member or Login';
-//     response.render('null', { data });
-//     // data.isLogin = false;
-//     // response.render('loginForm', { data });
-//   }
-// });
-
-// app.post('/request', async (request, response) => {
-//   const data = {};
-//   // if (request.cookies.loggedIn === 'true') {
-//   const { userEmail, userID, loggedIn } = request.cookies;
-//   const { school, type, quantity } = request.body;
-//   const sizing = request.body.size;
-//   const size = String(sizing).replace(/ /g, '_').toUpperCase();
-
-//   try {
-//     const findReqQtyQuery = `SELECT COUNT (inventory_id)
-//                                FROM donation_request
-//                                WHERE recipient_id = ${userID} `;
-//     const findRecipTot = await pool.query(findReqQtyQuery);
-//     const recipientTotal = findRecipTot.rows[0].count;
-//     // if ((recipientTotal + quantity) >= 20) {
-//     //   // alert('you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year');
-//     //   data.message = 'you have exceeded 20 pieces of inventory items. Please find a donor with less quantity to request to stay within your quota for the year';
-//     //   response.render('null', { data });
-//     // }
-//     const infoQuery = `SELECT school_id FROM schools WHERE school_name = '${school}'`;
-//     const schoolid = await pool.query(infoQuery);
-//     const schoolID = schoolid.rows[0].school_id;
-//     const findUniId = `SELECT id FROM uniforms WHERE type = '${type}'`;
-//     const uniID = await pool.query(findUniId);
-//     const uID = uniID.rows[0].id;
-//     const findPotentialsQuery = `SELECT donor_id, COUNT(status)
-//                                    FROM inventory WHERE status = 'available'
-//                                    AND school_id = ${schoolID}
-//                                    AND uniform_id = ${uID}
-//                                    AND size = '${size}'
-//                                    GROUP BY donor_id
-//                                    HAVING COUNT(status) = ${quantity}
-//                                    ORDER BY donor_id`;
-//     const findDonor = await pool.query(findPotentialsQuery);
-
-//     if (findDonor.rows.length === 0) {
-//       data.message = 'Check the inventory page for stocks. You might need to adjust your inventory to match those available by donors';
-//       // todo: check why alert is not working
-//       // alert('you need to adjust your qty');
-//       response.render('null', { data });
-//     }
-//     const donorFound = findDonor.rows[0].donor_id;
-//     console.log(donorFound);
-
-//     const sqls = [];
-//     const requestIds = [];
-//     for (let i = 0; i < quantity; i += 1) {
-//       const updateQuery = `UPDATE inventory SET status = 'reserved'
-//                              WHERE donor_id = ${donorFound}
-//                              AND school_id = ${schoolID}
-//                              AND uniform_id = ${uID}
-//                              AND size = '${size}' RETURNING id`;
-//       sqls.push(pool.query(updateQuery));
-//     }
-
-//     const rvs = await Promise.all(sqls);
-
-//     // rvs.forEach((rv, idx) => {
-//     //   console.log(`Result: ${idx}`, rv.rows);
-//     // });
-//     const insertSQLs = [];
-//     const idObjArray = rvs[0].rows;
-//     console.log('what is this idObjArray', idObjArray);
-//     for (let j = 0; j < idObjArray.length; j += 1) {
-//       const ind = idObjArray[j].id;
-//       requestIds.push(ind);
-//       const requestTBQuery = `INSERT INTO donation_request (recipient_id, inventory_id) VALUES (${userID}, ${ind})`;
-//       insertSQLs.push(pool.query(requestTBQuery));
-//     }
-//     console.log(insertSQLs);
-//     await Promise.all(insertSQLs);
-//     // find and alert donor
-//     const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
-//                                  school_name, type, size
-//                           FROM users
-//                           INNER JOIN inventory
-//                           ON users.id = donor_id
-//                           INNER JOIN donation_request
-//                           ON inventory.id=inventory_id
-//                           INNER JOIN schools
-//                           ON schools.school_id = inventory.school_id
-//                           INNER JOIN uniforms
-//                           ON uniforms.id = uniform_id
-//                           WHERE reserved_date::date = now()::date
-//                           GROUP BY email, name, school_name, type, size`;
-//     const resultDonor = await pool.query(findDonorQuery);
-//     const num = resultDonor.rows.length;
-//     const lastReq = resultDonor.rows[num - 1];
-//     console.log(lastReq);
-
-//     response.redirect('/my_requests');
-
-//     // const sgMail = require('@sendgrid/mail')();
-
-//     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-//     const msg = {
-//       // to: [{'1reginacheong@gmail.com'},{}], // Change to your recipient
-//       to: [
-//         {
-//           email: '1reginacheong@gmail.com',
-//         },
-//         {
-//           email: `${lastReq.email}`,
-//         },
-//       ],
-//       from: 'regina_cheong@hotmail.com', // Change to your verified sender
-//       subject: `There is a request for your donated ${lastReq.school_name} uniforms`,
-//       text: `There is a request for the ${lastReq.count} ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}. lalala `,
-//       html: `<strong>There is a request for your ${lastReq.count} piece(s) of ${lastReq.school_name} ${lastReq.type} of size ${lastReq.size}.</strong>`,
-//     };
-//     sgMail
-//       .send(msg)
-//       .then(() => {
-//         console.log('Email sent');
-//       })
-//       .catch((error) => {
-//         console.error(error);
-//       });
-//     data.message = 'Request Successful and the donor is notified via email';
-//     response.render('null', { data });
-//   } catch (err) {
-//     console.error(err.message); // wont break
-//   }
-//   // } else {
-//   //   data.message = 'Only members can request';
-//   //   response.render('null', { data });
-//   // }
-// });
-
 app.get('/my_requests', async (request, response) => {
   if (request.cookies.loggedIn === 'true') {
     const { userEmail, userID, loggedIn } = request.cookies;
@@ -892,6 +735,102 @@ app.get('/my_requests', async (request, response) => {
 });
 
 app.get('/my_requests-sortby/:parameter/:sortHow', sortRequests);
+
+app.post('/test', async (request, response) => {
+  const { userEmail, userID, loggedIn } = request.cookies;
+  const { requestInfo } = request.body;
+  const data = {};
+
+  console.log(typeof requestInfo);
+  try {
+    const accumQuery = `SELECT COUNT(inventory_id) FROM donation_request WHERE recipient_id = ${userID}`;
+    const accum = await pool.query(accumQuery);
+    const accumCurrent = accum.rows[0].count;
+    console.log('existing', accumCurrent);
+
+    if (typeof requestInfo === 'string') {
+      const info = requestInfo.split(', ');
+      const donorID = info[0];
+      const schoolID = info[1];
+      const uniformID = info[2];
+      const size = String(info[3]).trim().replace(/ /g, '_').toUpperCase();
+      const quantity = info[4];
+
+      if ((accumCurrent + quantity) >= 20) {
+        data.isOver = true;
+        data.accumCurrent = accumCurrent;
+        response.redirect('/my_requests');
+      } else {
+      // eslint-disable-next-line max-len
+        await updateAndInsert(
+          donorID,
+          schoolID,
+          uniformID,
+          size,
+          userID,
+          quantity,
+        );
+
+        response.redirect('/my_requests');
+        // find and alert Donor
+        const lastReq = await findDonorDetails();
+        sendAnEmail(
+          lastReq.email,
+          lastReq.school_name,
+          lastReq.count,
+          lastReq.size,
+          lastReq.type,
+        ); }
+    // response.render('null', { data });
+    // } else {
+    //   data.message = 'Only members can request';
+    //   response.render('null', { data });
+    } else if (typeof requestInfo === 'object') {
+      let totalNew = 0;
+      for (let i = 0; i < requestInfo.length; i += 1) {
+        const info = requestInfo[i].split(', ');
+        const donorID = info[0];
+        const schoolID = info[1];
+        const uniformID = info[2];
+        const size = info[3];
+        const quantity = info[4];
+        console.log(info);
+        totalNew += quantity;
+      }
+      if (accumCurrent + totalNew >= 20) {
+        data.isOver = true;
+        data.accumCurrent = accumCurrent;
+        response.redirect('/my_requests');
+      } else {
+        // eslint-disable-next-line max-len
+        const doUpdateAndInsert = await updateAndInsert(
+          donorID,
+          schoolID,
+          uniformID,
+          size,
+          userID,
+          quantity,
+        );
+        console.log(doUpdateAndInsert);
+        const lastReq = await findDonorDetails();
+        sendAnEmail(
+          lastReq.email,
+          lastReq.school_name,
+          lastReq.count,
+          lastReq.size,
+          lastReq.type,
+        );
+        response.redirect('/my_requests');
+      }
+    } else {
+      data.isLogin = false;
+
+      response.render('loginForm', { data });
+    }
+  } catch (err) {
+    console.error(err.message); // wont break
+  }
+});
 
 // set port to listen
 app.listen(port);
