@@ -9,6 +9,12 @@
   integrity="sha384-Atwg2Pkwv9vp0ygtn1JAojH0nYbwNJLPhwyoVbhoPwBhjQPR5VtM2+xf0Uwh9KtT" crossorigin="anonymous"></script>
 
 <title>Show uniforms</title>
+  <script type="text/javascript">
+    const overlimit = <% data.isover%>
+    if (overlimit === true) {
+      alert (`You have exceeded the quota of 20. You currently have a total of '${data.accumCurrent}' either under reservation/which you have collected`)
+    }
+  </script>  
 </head>
 
 <body>
