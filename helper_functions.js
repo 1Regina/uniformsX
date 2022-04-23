@@ -98,25 +98,7 @@ const updateAndInsert = async (
 // find and alert Donor
 const findDonorDetails = async (donorID, schoolID, uniformID, size) => {
   try {
-    // const findDonorQuery = `SELECT email, name, COUNT(reserved_date),
-    //                                school_name, type, size
-    //                         FROM users
-    //                         INNER JOIN inventory
-    //                         ON users.id = donor_id
-    //                         INNER JOIN donation_request
-    //                         ON inventory.id=inventory_id
-    //                         INNER JOIN schools
-    //                         ON schools.school_id = inventory.school_id
-    //                         INNER JOIN uniforms
-    //                         ON uniforms.id = uniform_id
-    //                         WHERE reserved_date::date = now()::date
-    //                         AND donor_id = ${donorID} 
-    //                         AND inventory.school_id = ${schoolID}
-    //                         AND inventory.uniform_id = ${uniformID}
-    //                         AND size = '${size}'
-    //                         AND status = 'reserved'
-    //                         GROUP BY email, name, school_name, type, size`;
-       const findDonorQuery = `SELECT email, name, 
+    const findDonorQuery = `SELECT email, name, 
                                    school_name, type, size
                             FROM users
                             INNER JOIN inventory
@@ -127,8 +109,8 @@ const findDonorDetails = async (donorID, schoolID, uniformID, size) => {
                             ON schools.school_id = inventory.school_id
                             INNER JOIN uniforms
                             ON uniforms.id = uniform_id
-                            WHERE 
-                                donor_id = ${donorID} 
+                            WHERE reserved_date::date = now()::date
+                            AND donor_id = ${donorID} 
                             AND inventory.school_id = ${schoolID}
                             AND inventory.uniform_id = ${uniformID}
                             AND size = '${size}'
