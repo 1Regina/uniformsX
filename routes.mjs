@@ -1,3 +1,4 @@
+import { Router } from 'express';
 import db from './.db/models/index.model.mjs';
 
 // import the controller
@@ -7,13 +8,22 @@ import initUniformsController from './controllers/uniforms.mjs';
 import initInventoryController from './controllers/inventory.mjs';
 import initDonationRequestController from './controllers/donation_request.mjs';
 
+import { authLogin, randomMiddleware } from './middlewares/random.middleware.js';
+
+const router = Router();
+
+const prefix = '/my_profile';
+
+const userRouteController = new initUsersController(db);
+router.get(`${prefix}`, authLogin, userRouteController.getModels);
+
 function bindRouteSignup(app) {
   const signupController = initUsersController(db);
   app.post('/signup', signupController.index);
 }
 function bindRouteEditProfile(app) {
   const usersController = initUsersController(db);
-  app.post('/edit_profile', usersController.index);
+  app.put('/edit_profile', usersController.index);
 }
 
 function bindRouteMyProfile(app) {
@@ -39,5 +49,5 @@ function bindRouteDonate(app) {
 
 export {
   bindRouteSignup, bindRouteEditProfile, bindRouteMyProfile, bindRouteLogin, bindRouteRequest,
-  bindRouteDonate,
+  bindRouteDonate, router,
 };
