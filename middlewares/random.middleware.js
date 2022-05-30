@@ -4,11 +4,12 @@ const randomMiddleware = async (req, res, next) => {
 };
 
 const authLogin = async (err, req, res, next) => {
-  const data = {};
+  // const data = {};
   const { userEmail, userID, loggedIn } = req.cookies;
   if (loggedIn === 'true') {
     next();
   } else {
+    const data = {};
     data.isLogin = false;
     res.render('loginForm', { data });
     console.error(err.stack);

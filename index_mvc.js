@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import methodOverride from 'method-override';
 
 import {
-  bindRoute_signup, bindRoute_editProfile, bindRoute_myProfile, bindRoute_login, bindRoute_request, bindRoute_donate, router
+  bindRoute_signup, bindRoute_editProfile, bindRoute_myProfile, bindRoute_login, bindRoute_request, bindRoute_donate, router,
 } from './routes.mjs';
 
 // Initialise Express instance

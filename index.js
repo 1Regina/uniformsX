@@ -178,14 +178,16 @@ app.get('/faq', (request, response) => {
 
 app.get('/my_profile', async (request, response) => {
   const { userEmail, userID, loggedIn } = request.cookies;
-  const data = {};
+  // const data = {};
   if (loggedIn === 'true') {
     const userInfoQuery = `SELECT * FROM users WHERE id = ${userID}`;
     const myInfo = await pool.query(userInfoQuery);
     const data = myInfo.rows[0];
+    console.log(myInfo.rows[0]);
     data.message = 'My Profile';
     response.render('profile', { data });
   } else {
+    const data = {};
     data.isLogin = false;
     response.render('loginForm', { data });
   }
